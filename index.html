@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Autocomplete</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        .editor-container {
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        #editor {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+            outline: none;
+            background: transparent;
+            position: relative;
+            z-index: 1;
+        }
+        
+        #suggestion {
+            color: #999;
+            pointer-events: none;
+            position: absolute;
+            font-size: 16px;
+            white-space: pre-wrap;
+            overflow: hidden;
+            padding: 15px;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            background: transparent;
+        }
+        
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .settings-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .setting {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+        }
+        
+        select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-time Text Autocomplete</h1>
+    
+    <div class="editor-container">
+        <textarea id="editor" placeholder="Start typing here and see autocomplete suggestions..."></textarea>
+        <div id="suggestion"></div>
+    </div>
+    
+    <div class="controls">
+        <div class="settings-group">
+            <div class="setting">
+                <label for="maxTokens">Max tokens:</label>
+                <input type="number" id="maxTokens" min="1" max="100" value="20">
+            </div>
+            
+            <div class="setting">
+                <label for="completionMode">Mode:</label>
+                <select id="completionMode">
+                    <option value="simple">Simple completion</option>
+                    <option value="enriched" selected>Enriched text</option>
+                </select>
+            </div>
+        </div>
+        
+        <button id="acceptBtn">Accept Suggestion (Tab)</button>
+    </div>
+    
+    <div class="info">
+        <p><strong>Enriched text mode:</strong> Enhances your writing with detailed, contextually relevant content.</p>
+        <p><strong>Simple mode:</strong> Basic text completion that follows your writing style.</p>
+        <p>Press <strong>Tab</strong> or click the button to accept suggestions.</p>
+    </div>
+    
+    <script>
+        const editor = document.getElementById('editor');
+        const suggestion = document.getElementById('suggestion');
+        const acceptBtn = document.getElementById('acceptBtn');
+        const maxTokensInput = document.getElementById('maxTokens');
+        const completionModeSelect = document.getElementById('completionMode');
+        
+        let currentSuggestion = '';
+        let typingTimer;
+        
+        // Function to get autocomplete suggestions
+        async function getSuggestion() {
+            const text = editor.value;
+            if (!text.trim()) {
+                suggestion.textContent = '';
+                currentSuggestion = '';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:8000/autocomplete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        max_tokens: parseInt(maxTokensInput.value),
+                        mode: completionModeSelect.value
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+                
+                const data = await response.json();
+                currentSuggestion = data.completion;
+                
+                // Display the current text plus the suggestion
+                suggestion.textContent = text + currentSuggestion;
+                
+                // Highlight the suggestion part by making it bold
+                const textLength = text.length;
+                suggestion.innerHTML = text + '<span style="color: #777; font-weight: normal;">' + currentSuggestion + '</span>';
+            } catch (error) {
+                console.error('Error fetching suggestion:', error);
+            }
+        }
+        
+        // Listen for input changes
+        editor.addEventListener('input', () => {
+            // Clear existing timer
+            clearTimeout(typingTimer);
+            
+            // Set new timer - only make API call after user stops typing for 500ms
+            typingTimer = setTimeout(getSuggestion, 500);
+            
+            // Update the suggestion display to match current input
+            suggestion.textContent = editor.value;
+        });
+        
+        // Accept the suggestion
+        function acceptSuggestion() {
+            if (currentSuggestion) {
+                editor.value += currentSuggestion;
+                currentSuggestion = '';
+                suggestion.textContent = editor.value;
+                
+                // Request a new suggestion
+                getSuggestion();
+            }
+        }
+        
+        // Accept suggestion with Tab key
+        editor.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab' && currentSuggestion) {
+                e.preventDefault(); // Prevent tab from moving focus
+                acceptSuggestion();
+            }
+        });
+        
+        // Accept suggestion with button
+        acceptBtn.addEventListener('click', acceptSuggestion);
+        
+        // Trigger new suggestions when settings change
+        maxTokensInput.addEventListener('change', getSuggestion);
+        completionModeSelect.addEventListener('change', getSuggestion);
+    </script>
+</body>
+</html>
