@@ -3,231 +3,829 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text Autocomplete</title>
+    <title>Multi-Mode Text Enrichment System</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             line-height: 1.6;
+            background-color: #f8f9fa;
         }
         
         h1 {
             text-align: center;
             color: #333;
+            margin-bottom: 30px;
+            font-size: 2.2em;
         }
         
-        .editor-container {
-            position: relative;
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        /* Mode Selection */
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .mode-btn {
+            padding: 12px 24px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            color: #666;
+        }
+        
+        .mode-btn.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
+        .mode-btn:hover:not(.active) {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+        
+        /* Mode Descriptions */
+        .mode-description {
+            display: none;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .mode-description.active {
+            display: block;
+        }
+        
+        /* Input Areas */
+        .input-section {
             margin: 20px 0;
         }
         
-        #editor {
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .input-group input, .input-group textarea {
             width: 100%;
-            min-height: 200px;
-            padding: 15px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            font-family: inherit;
             resize: vertical;
             outline: none;
-            background: transparent;
-            position: relative;
-            z-index: 1;
+            transition: border-color 0.3s;
         }
         
-        #suggestion {
-            color: #999;
-            pointer-events: none;
-            position: absolute;
-            font-size: 16px;
-            white-space: pre-wrap;
-            overflow: hidden;
-            padding: 15px;
-            top: 0;
-            left: 0;
-            z-index: -1;
-            background: transparent;
+        .input-group input:focus, .input-group textarea:focus {
+            border-color: #4CAF50;
         }
         
+        .input-group textarea {
+            min-height: 120px;
+        }
+        
+        .input-group.hidden {
+            display: none;
+        }
+        
+        /* Word Count */
+        .word-count {
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+        }
+        
+        .word-count.insufficient {
+            color: #d32f2f;
+            background-color: #ffebee;
+        }
+        
+        .word-count.sufficient {
+            color: #2e7d32;
+            background-color: #e8f5e8;
+        }
+        
+        /* Controls */
         .controls {
-            margin-top: 10px;
+            margin: 20px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 15px;
         }
         
         .settings-group {
             display: flex;
-            gap: 15px;
+            gap: 20px;
             align-items: center;
             flex-wrap: wrap;
-        }
-        
-        button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        
-        button:hover {
-            background-color: #45a049;
         }
         
         .setting {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         input[type="number"] {
-            width: 60px;
-            padding: 5px;
-        }
-        
-        select {
-            padding: 5px;
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
             border-radius: 4px;
-            border: 1px solid #ccc;
         }
         
-        .info {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
+        /* Buttons */
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        button:hover:not(:disabled) {
+            background-color: #45a049;
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .secondary-btn {
+            background-color: #2196F3;
+        }
+        
+        .secondary-btn:hover:not(:disabled) {
+            background-color: #1976D2;
+        }
+        
+        .danger-btn {
+            background-color: #f44336;
+        }
+        
+        .danger-btn:hover:not(:disabled) {
+            background-color: #d32f2f;
+        }
+        
+        /* Results Section */
+        .results-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .results-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .result-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .result-display {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            min-height: 80px;
+            margin-bottom: 15px;
+            white-space: pre-wrap;
+            line-height: 1.7;
+        }
+        
+        .result-display.empty {
+            color: #999;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        /* Suggestion Navigation */
+        .suggestion-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+        
+        .suggestion-counter {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .nav-btn {
+            padding: 8px 16px;
+            font-size: 12px;
+            background-color: #6c757d;
+        }
+        
+        .nav-btn:hover:not(:disabled) {
+            background-color: #5a6268;
+        }
+        
+        /* Messages */
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            border-left: 4px solid #d32f2f;
+        }
+        
+        .loading {
+            color: #666;
+            background-color: #f5f5f5;
+            border-left: 4px solid #999;
+        }
+        
+        .success {
+            color: #2e7d32;
+            background-color: #e8f5e8;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        /* Info Section */
+        .info {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #e3f2fd;
+            border-radius: 8px;
+            font-size: 14px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .controls, .results-header, .suggestion-navigation {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .mode-selector {
+                flex-direction: column;
+            }
+            
+            .mode-btn {
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Real-time Text Autocomplete</h1>
-    
-    <div class="editor-container">
-        <textarea id="editor" placeholder="Start typing here and see autocomplete suggestions..."></textarea>
-        <div id="suggestion"></div>
-    </div>
-    
-    <div class="controls">
-        <div class="settings-group">
-            <div class="setting">
-                <label for="maxTokens">Max tokens:</label>
-                <input type="number" id="maxTokens" min="1" max="100" value="20">
+    <div class="main-container">
+        <h1>Multi-Mode Text Enrichment System</h1>
+        
+        <!-- Mode Selection -->
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="mode_1">
+                Context-Aware Completion
+            </button>
+            <button class="mode-btn" data-mode="mode_2">
+                Structured Enrichment  
+            </button>
+            <button class="mode-btn" data-mode="mode_3">
+                Input Refinement
+            </button>
+        </div>
+        
+        <!-- Mode Descriptions -->
+        <div id="desc-mode_1" class="mode-description active">
+            <strong>Context-Aware Completion:</strong> Continue your text naturally based on context. Generate multiple suggestions and choose the best one.
+        </div>
+        <div id="desc-mode_2" class="mode-description">
+            <strong>Structured Enrichment:</strong> Enhance your text using a specific header/topic. Perfect for expanding on ideas with focused context.
+        </div>
+        <div id="desc-mode_3" class="mode-description">
+            <strong>Input Refinement:</strong> Transform messy, incomplete text into polished, well-structured content. No suggestions - just one refined output.
+        </div>
+        
+        <!-- Input Section -->
+        <div class="input-section">
+            <!-- Header input (Mode 2 only) -->
+            <div class="input-group hidden" id="header-group">
+                <label for="headerInput">Header/Topic:</label>
+                <input type="text" id="headerInput" placeholder="Enter the main topic or header...">
             </div>
             
-            <div class="setting">
-                <label for="completionMode">Mode:</label>
-                <select id="completionMode">
-                    <option value="simple">Simple completion</option>
-                    <option value="enriched" selected>Enriched text</option>
-                </select>
+            <!-- Main text input -->
+            <div class="input-group">
+                <label for="textInput" id="textLabel">Your Text:</label>
+                <textarea id="textInput" placeholder="Start writing your text here... (minimum 23 words required)"></textarea>
+                <div class="word-count" id="wordCount">Words: 0 (minimum 23 required)</div>
             </div>
         </div>
         
-        <button id="acceptBtn">Accept Suggestion (Tab)</button>
-    </div>
-    
-    <div class="info">
-        <p><strong>Enriched text mode:</strong> Enhances your writing with detailed, contextually relevant content.</p>
-        <p><strong>Simple mode:</strong> Basic text completion that follows your writing style.</p>
-        <p>Press <strong>Tab</strong> or click the button to accept suggestions.</p>
+        <!-- Controls -->
+        <div class="controls">
+            <div class="settings-group">
+                <div class="setting">
+                    <label for="maxTokens">Max tokens:</label>
+                    <input type="number" id="maxTokens" min="20" max="200" value="50">
+                </div>
+            </div>
+            
+            <div class="result-controls">
+                <button id="generateBtn" disabled>Generate</button>
+                <button id="anotherBtn" class="secondary-btn" disabled style="display: none;">Another Suggestion</button>
+                <button id="useBtn" class="success-btn" disabled style="display: none;">Use This</button>
+            </div>
+        </div>
+        
+        <!-- Messages -->
+        <div class="message error" id="errorMessage"></div>
+        <div class="message loading" id="loadingMessage">Generating enrichment...</div>
+        <div class="message success" id="successMessage"></div>
+        
+        <!-- Results Section -->
+        <div class="results-section">
+            <div class="results-header">
+                <h3 id="resultsTitle">AI Enrichment Results</h3>
+                <button id="clearBtn" class="danger-btn" style="display: none;">Clear Suggestions</button>
+            </div>
+            
+            <div class="result-display empty" id="resultDisplay">
+                Select a mode and write at least 23 words to see AI-powered enrichment...
+            </div>
+            
+            <div class="suggestion-navigation" id="suggestionNav" style="display: none;">
+                <div class="suggestion-counter" id="suggestionCounter">Suggestion 1 of 1</div>
+                <div class="nav-buttons">
+                    <button class="nav-btn" id="prevBtn" disabled>← Previous</button>
+                    <button class="nav-btn" id="nextBtn" disabled>Next →</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Info Section -->
+        <div class="info">
+            <p><strong>How to use:</strong></p>
+            <ul>
+                <li><strong>Mode 1:</strong> Write text and get intelligent continuations with multiple suggestions</li>
+                <li><strong>Mode 2:</strong> Provide a header/topic and body text for structured enrichment</li>
+                <li><strong>Mode 3:</strong> Input messy or incomplete text for instant refinement</li>
+                <li>All modes require at least 23 words to generate meaningful results</li>
+                <li>Use navigation buttons to cycle through suggestions (Modes 1 & 2 only)</li>
+                <li>Click "Use This" to copy the selected result to your clipboard</li>
+            </ul>
+        </div>
     </div>
     
     <script>
-        const editor = document.getElementById('editor');
-        const suggestion = document.getElementById('suggestion');
-        const acceptBtn = document.getElementById('acceptBtn');
+        // DOM Elements
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        const modeDescriptions = document.querySelectorAll('.mode-description');
+        const headerGroup = document.getElementById('header-group');
+        const headerInput = document.getElementById('headerInput');
+        const textInput = document.getElementById('textInput');
+        const textLabel = document.getElementById('textLabel');
+        const wordCount = document.getElementById('wordCount');
         const maxTokensInput = document.getElementById('maxTokens');
-        const completionModeSelect = document.getElementById('completionMode');
+        const generateBtn = document.getElementById('generateBtn');
+        const anotherBtn = document.getElementById('anotherBtn');
+        const useBtn = document.getElementById('useBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const successMessage = document.getElementById('successMessage');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const resultsTitle = document.getElementById('resultsTitle');
+        const suggestionNav = document.getElementById('suggestionNav');
+        const suggestionCounter = document.getElementById('suggestionCounter');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
         
-        let currentSuggestion = '';
+        // State
+        let currentMode = 'mode_1';
+        let suggestions = [];
+        let currentSuggestionIndex = 0;
         let typingTimer;
         
-        // Function to get autocomplete suggestions
-        async function getSuggestion() {
-            const text = editor.value;
-            if (!text.trim()) {
-                suggestion.textContent = '';
-                currentSuggestion = '';
+        // Utility Functions
+        function countWords(text) {
+            const words = text.trim().match(/\b\w+\b/g);
+            return words ? words.length : 0;
+        }
+        
+        function showMessage(element, message) {
+            element.textContent = message;
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+        
+        function hideMessages() {
+            errorMessage.style.display = 'none';
+            loadingMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+        }
+        
+        // Mode Management
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // Update active mode button
+            modeButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            
+            // Update mode descriptions
+            modeDescriptions.forEach(desc => {
+                desc.classList.toggle('active', desc.id === `desc-${mode}`);
+            });
+            
+            // Update UI based on mode
+            updateUIForMode(mode);
+            
+            // Reset suggestions
+            resetSuggestions();
+            updateWordCount();
+        }
+        
+        function updateUIForMode(mode) {
+            switch(mode) {
+                case 'mode_1':
+                    headerGroup.classList.add('hidden');
+                    textLabel.textContent = 'Your Text:';
+                    textInput.placeholder = 'Start writing your text here... (minimum 23 words required)';
+                    anotherBtn.style.display = 'none';
+                    useBtn.style.display = 'none';
+                    generateBtn.textContent = 'Generate Completion';
+                    resultsTitle.textContent = 'Context-Aware Completions';
+                    break;
+                    
+                case 'mode_2':
+                    headerGroup.classList.remove('hidden');
+                    textLabel.textContent = 'Body Text:';
+                    textInput.placeholder = 'Enter the body text to enrich... (minimum 23 words required)';
+                    anotherBtn.style.display = 'none';
+                    useBtn.style.display = 'none';
+                    generateBtn.textContent = 'Generate Enrichment';
+                    resultsTitle.textContent = 'Structured Enrichment Results';
+                    break;
+                    
+                case 'mode_3':
+                    headerGroup.classList.add('hidden');
+                    textLabel.textContent = 'Unstructured Input:';
+                    textInput.placeholder = 'Enter messy, incomplete, or unstructured text... (minimum 23 words required)';
+                    anotherBtn.style.display = 'none';
+                    useBtn.style.display = 'none';
+                    generateBtn.textContent = 'Refine Text';
+                    resultsTitle.textContent = 'Refined Text Output';
+                    break;
+            }
+        }
+        
+        // Word Count Management
+        function updateWordCount() {
+            const text = textInput.value;
+            const words = countWords(text);
+            wordCount.textContent = `Words: ${words} (minimum 23 required)`;
+            
+            if (words < 23) {
+                wordCount.className = 'word-count insufficient';
+                generateBtn.disabled = true;
+                anotherBtn.disabled = true;
+            } else {
+                wordCount.className = 'word-count sufficient';
+                generateBtn.disabled = false;
+            }
+        }
+        
+        // Suggestion Management
+        function resetSuggestions() {
+            suggestions = [];
+            currentSuggestionIndex = 0;
+            updateSuggestionDisplay();
+            anotherBtn.disabled = true;
+            useBtn.disabled = true;
+            clearBtn.style.display = 'none';
+        }
+        
+        function updateSuggestionDisplay() {
+            if (suggestions.length === 0) {
+                const modeTexts = {
+                    'mode_1': 'Click "Generate Completion" to get context-aware continuations...',
+                    'mode_2': 'Click "Generate Enrichment" to enhance your structured content...',
+                    'mode_3': 'Click "Refine Text" to polish your unstructured input...'
+                };
+                
+                resultDisplay.textContent = countWords(textInput.value) >= 23 ? 
+                    modeTexts[currentMode] : 
+                    'Write at least 23 words to see AI-powered enrichment...';
+                    
+                resultDisplay.className = 'result-display empty';
+                suggestionNav.style.display = 'none';
+                useBtn.disabled = true;
                 return;
             }
             
+            const currentSuggestion = suggestions[currentSuggestionIndex];
+            resultDisplay.textContent = currentSuggestion;
+            resultDisplay.className = 'result-display';
+            
+            // Update navigation for modes 1 and 2
+            if (currentMode !== 'mode_3') {
+                suggestionCounter.textContent = `Suggestion ${currentSuggestionIndex + 1} of ${suggestions.length}`;
+                suggestionNav.style.display = 'flex';
+                
+                prevBtn.disabled = currentSuggestionIndex === 0;
+                nextBtn.disabled = currentSuggestionIndex === suggestions.length - 1;
+                
+                anotherBtn.style.display = suggestions.length < 5 ? 'inline-block' : 'none';
+                anotherBtn.disabled = suggestions.length >= 5;
+                clearBtn.style.display = 'inline-block';
+            } else {
+                suggestionNav.style.display = 'none';
+                clearBtn.style.display = 'none';
+            }
+            
+            useBtn.style.display = 'inline-block';
+            useBtn.disabled = false;
+        }
+        
+        // API Communication
+        async function generateEnrichment(regenerate = false) {
+            const text = textInput.value.trim();
+            const words = countWords(text);
+            
+            if (words < 23) {
+                showMessage(errorMessage, 'Please provide at least 23 words before generating enrichment.');
+                return;
+            }
+            
+            // Mode 2 validation
+            if (currentMode === 'mode_2' && !headerInput.value.trim()) {
+                showMessage(errorMessage, 'Header is required for Structured Enrichment mode.');
+                return;
+            }
+            
+            hideMessages();
+            loadingMessage.style.display = 'block';
+            
             try {
+                const requestBody = {
+                    text: text,
+                    mode: currentMode,
+                    max_tokens: parseInt(maxTokensInput.value),
+                    regenerate: regenerate
+                };
+                
+                if (currentMode === 'mode_2') {
+                    requestBody.header = headerInput.value.trim();
+                }
+                
                 const response = await fetch('http://localhost:8000/autocomplete', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        text: text,
-                        max_tokens: parseInt(maxTokensInput.value),
-                        mode: completionModeSelect.value
-                    }),
+                    body: JSON.stringify(requestBody)
                 });
                 
                 if (!response.ok) {
-                    throw new Error('API request failed');
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'API request failed');
                 }
                 
                 const data = await response.json();
-                currentSuggestion = data.completion;
                 
-                // Display the current text plus the suggestion
-                suggestion.textContent = text + currentSuggestion;
+                // Add new suggestion
+                suggestions.push(data.completion);
+                currentSuggestionIndex = suggestions.length - 1;
                 
-                // Highlight the suggestion part by making it bold
-                const textLength = text.length;
-                suggestion.innerHTML = text + '<span style="color: #777; font-weight: normal;">' + currentSuggestion + '</span>';
+                updateSuggestionDisplay();
+                
+                if (currentMode !== 'mode_3') {
+                    anotherBtn.disabled = suggestions.length >= 5;
+                }
+                
             } catch (error) {
-                console.error('Error fetching suggestion:', error);
+                console.error('Error generating enrichment:', error);
+                showMessage(errorMessage, error.message);
+            } finally {
+                loadingMessage.style.display = 'none';
             }
         }
         
-        // Listen for input changes
-        editor.addEventListener('input', () => {
-            // Clear existing timer
-            clearTimeout(typingTimer);
-            
-            // Set new timer - only make API call after user stops typing for 500ms
-            typingTimer = setTimeout(getSuggestion, 500);
-            
-            // Update the suggestion display to match current input
-            suggestion.textContent = editor.value;
-        });
+        // Clipboard functionality
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                showMessage(successMessage, 'Text copied to clipboard!');
+            } catch (error) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showMessage(successMessage, 'Text copied to clipboard!');
+                } catch (fallbackError) {
+                    showMessage(errorMessage, 'Failed to copy to clipboard. Please copy manually.');
+                }
+                document.body.removeChild(textArea);
+            }
+        }
         
-        // Accept the suggestion
-        function acceptSuggestion() {
-            if (currentSuggestion) {
-                editor.value += currentSuggestion;
-                currentSuggestion = '';
-                suggestion.textContent = editor.value;
+        // Clear suggestions
+        async function clearSuggestions() {
+            try {
+                const requestParams = new URLSearchParams({
+                    text: textInput.value.trim()
+                });
                 
-                // Request a new suggestion
-                getSuggestion();
+                if (currentMode === 'mode_2' && headerInput.value.trim()) {
+                    requestParams.append('header', headerInput.value.trim());
+                }
+                
+                await fetch(`http://localhost:8000/suggestions/${currentMode}?${requestParams}`, {
+                    method: 'DELETE'
+                });
+                
+                resetSuggestions();
+                showMessage(successMessage, 'Suggestions cleared successfully!');
+                
+            } catch (error) {
+                console.error('Error clearing suggestions:', error);
+                showMessage(errorMessage, 'Failed to clear suggestions.');
             }
         }
         
-        // Accept suggestion with Tab key
-        editor.addEventListener('keydown', (e) => {
-            if (e.key === 'Tab' && currentSuggestion) {
-                e.preventDefault(); // Prevent tab from moving focus
-                acceptSuggestion();
+        // Event Listeners
+        modeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                switchMode(btn.dataset.mode);
+            });
+        });
+        
+        textInput.addEventListener('input', () => {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(updateWordCount, 100);
+        });
+        
+        generateBtn.addEventListener('click', () => {
+            generateEnrichment(false);
+        });
+        
+        anotherBtn.addEventListener('click', () => {
+            generateEnrichment(true);
+        });
+        
+        useBtn.addEventListener('click', () => {
+            if (suggestions.length > 0 && currentSuggestionIndex < suggestions.length) {
+                const selectedText = suggestions[currentSuggestionIndex];
+                copyToClipboard(selectedText);
             }
         });
         
-        // Accept suggestion with button
-        acceptBtn.addEventListener('click', acceptSuggestion);
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all suggestions?')) {
+                clearSuggestions();
+            }
+        });
         
-        // Trigger new suggestions when settings change
-        maxTokensInput.addEventListener('change', getSuggestion);
-        completionModeSelect.addEventListener('change', getSuggestion);
+        prevBtn.addEventListener('click', () => {
+            if (currentSuggestionIndex > 0) {
+                currentSuggestionIndex--;
+                updateSuggestionDisplay();
+            }
+        });
+        
+        nextBtn.addEventListener('click', () => {
+            if (currentSuggestionIndex < suggestions.length - 1) {
+                currentSuggestionIndex++;
+                updateSuggestionDisplay();
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + Enter to generate
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                if (!generateBtn.disabled) {
+                    generateEnrichment(false);
+                }
+            }
+            
+            // Ctrl/Cmd + Shift + Enter for another suggestion
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
+                e.preventDefault();
+                if (!anotherBtn.disabled && anotherBtn.style.display !== 'none') {
+                    generateEnrichment(true);
+                }
+            }
+            
+            // Ctrl/Cmd + U to use current suggestion
+            if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+                e.preventDefault();
+                if (!useBtn.disabled && useBtn.style.display !== 'none') {
+                    useBtn.click();
+                }
+            }
+            
+            // Arrow keys for navigation
+            if (suggestionNav.style.display === 'flex') {
+                if (e.key === 'ArrowLeft' && !prevBtn.disabled) {
+                    e.preventDefault();
+                    prevBtn.click();
+                }
+                if (e.key === 'ArrowRight' && !nextBtn.disabled) {
+                    e.preventDefault();
+                    nextBtn.click();
+                }
+            }
+        });
+        
+        // Initialize
+        updateWordCount();
+        updateSuggestionDisplay();
+        
+        // Add mode switching keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey) {
+                switch(e.key) {
+                    case '1':
+                        e.preventDefault();
+                        switchMode('mode_1');
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        switchMode('mode_2');
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        switchMode('mode_3');
+                        break;
+                }
+            }
+        });
     </script>
 </body>
 </html>
