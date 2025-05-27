@@ -66,7 +66,14 @@ The service offers three distinct modes of text enrichment:
 
 2. API Endpoints:
 
+   - **Health Check**
+
+     ```http
+     GET /health
+     ```
+
    - **Text Enrichment**
+
      ```http
      POST /autocomplete
      Content-Type: application/json
@@ -81,23 +88,20 @@ The service offers three distinct modes of text enrichment:
      ```
 
    - **Get Suggestions**
+
      ```http
      GET /suggestions/{mode}?text=your_text&header=optional_header
      ```
 
    - **Clear Suggestions**
+
      ```http
      DELETE /suggestions/{mode}?text=your_text&header=optional_header
      ```
 
-   - **Health Check**
-     ```http
-     GET /health
-     ```
-
 ## API Parameters
 
-- `text`: Input text to be enriched (minimum 23 words required)
+- `text`: Input text to be enriched (minimum 23 words required for modes 1 and 3, minimum 2 words for mode 2)
 - `mode`: Enrichment mode ("mode_1", "mode_2", or "mode_3")
 - `header`: Required for mode_2, provides topic/context
 - `regenerate`: Boolean to generate alternative completions (not supported in mode_3)

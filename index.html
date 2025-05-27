@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Mode Text Enrichment System</title>
+    <title>Multi-Mode Text Enrichment System - Dynamic Parameters</title>
     <style>
         * {
             box-sizing: border-box;
@@ -93,7 +93,7 @@
             color: #333;
         }
         
-        .input-group input, .input-group textarea {
+        .input-group input, .input-group textarea, .input-group select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
@@ -105,7 +105,7 @@
             transition: border-color 0.3s;
         }
         
-        .input-group input:focus, .input-group textarea:focus {
+        .input-group input:focus, .input-group textarea:focus, .input-group select:focus {
             border-color: #4CAF50;
         }
         
@@ -113,719 +113,639 @@
             min-height: 120px;
         }
         
-        .input-group.hidden {
-            display: none;
-        }
-        
-        /* Word Count */
-        .word-count {
-            font-size: 14px;
-            font-weight: 500;
-            margin-top: 8px;
-            padding: 8px 12px;
-            border-radius: 4px;
-            background-color: #f5f5f5;
-        }
-        
-        .word-count.insufficient {
-            color: #d32f2f;
-            background-color: #ffebee;
-        }
-        
-        .word-count.sufficient {
-            color: #2e7d32;
-            background-color: #e8f5e8;
-        }
-        
-        /* Controls */
-        .controls {
+        /* Dynamic Parameters */
+        .parameters-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
             margin: 20px 0;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .parameters-header {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .parameter-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
             gap: 15px;
-        }
-        
-        .settings-group {
-            display: flex;
-            gap: 20px;
-            align-items: center;
+            align-items: end;
+            margin-bottom: 15px;
             flex-wrap: wrap;
         }
         
-        .setting {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .parameter-group {
+            flex: 1;
+            min-width: 150px;
         }
         
-        input[type="number"] {
-            width: 80px;
-            padding: 8px;
+        .parameter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .parameter-group input, .parameter-group select {
+            padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 6px;
+            font-size: 14px;
         }
         
         /* Buttons */
-        button {
-            background-color: #4CAF50;
-            color: white;
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 14px 28px;
             border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 500;
             transition: all 0.3s;
+            text-transform: none;
         }
         
-        button:hover:not(:disabled) {
-            background-color: #45a049;
-            transform: translateY(-1px);
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
         }
         
-        button:disabled {
-            background-color: #ccc;
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            border-color: #ccc;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
         
-        .secondary-btn {
-            background-color: #2196F3;
+        .btn:disabled:hover {
+            transform: none;
         }
         
-        .secondary-btn:hover:not(:disabled) {
-            background-color: #1976D2;
-        }
-        
-        .danger-btn {
-            background-color: #f44336;
-        }
-        
-        .danger-btn:hover:not(:disabled) {
-            background-color: #d32f2f;
-        }
-        
-        /* Results Section */
+        /* Results */
         .results-section {
             margin-top: 30px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
         }
         
         .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .results-header h3 {
-            margin: 0;
+            font-weight: 600;
             color: #333;
-            font-size: 18px;
-        }
-        
-        .result-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        .result-display {
-            background: white;
-            padding: 20px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-            min-height: 80px;
             margin-bottom: 15px;
-            white-space: pre-wrap;
-            line-height: 1.7;
+            font-size: 1.2em;
         }
         
-        .result-display.empty {
-            color: #999;
-            text-align: center;
-            font-style: italic;
+        .result-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+            margin-bottom: 15px;
         }
         
-        /* Suggestion Navigation */
-        .suggestion-navigation {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-        }
-        
-        .suggestion-counter {
+        .result-meta {
             font-size: 14px;
             color: #666;
-            font-weight: 500;
+            margin-bottom: 10px;
         }
         
-        .nav-buttons {
-            display: flex;
-            gap: 8px;
+        .result-content {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
         }
         
-        .nav-btn {
-            padding: 8px 16px;
-            font-size: 12px;
-            background-color: #6c757d;
+        /* Loading States */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
         }
         
-        .nav-btn:hover:not(:disabled) {
-            background-color: #5a6268;
+        .loading.active {
+            display: block;
         }
         
-        /* Messages */
-        .message {
-            padding: 12px;
-            border-radius: 6px;
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Error States */
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #c62828;
             margin: 15px 0;
             display: none;
         }
         
-        .error {
-            color: #d32f2f;
-            background-color: #ffebee;
-            border-left: 4px solid #d32f2f;
+        .error.active {
+            display: block;
         }
         
-        .loading {
+        /* Word/Character Counters */
+        .counter {
+            font-size: 12px;
             color: #666;
-            background-color: #f5f5f5;
-            border-left: 4px solid #999;
+            text-align: right;
+            margin-top: 5px;
         }
         
-        .success {
-            color: #2e7d32;
-            background-color: #e8f5e8;
-            border-left: 4px solid #4CAF50;
+        .counter.warning {
+            color: #ff9800;
         }
         
-        /* Info Section */
-        .info {
-            margin-top: 25px;
-            padding: 20px;
-            background-color: #e3f2fd;
-            border-radius: 8px;
-            font-size: 14px;
-            border-left: 4px solid #2196F3;
+        .counter.error {
+            color: #f44336;
         }
         
         /* Responsive Design */
         @media (max-width: 768px) {
-            .controls, .results-header, .suggestion-navigation {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 10px;
+            body {
+                padding: 10px;
+            }
+            
+            .main-container {
+                padding: 20px;
             }
             
             .mode-selector {
                 flex-direction: column;
+                align-items: center;
             }
             
             .mode-btn {
-                text-align: center;
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .parameter-row {
+                flex-direction: column;
+            }
+            
+            .parameter-group {
+                min-width: 100%;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
             }
         }
     </style>
 </head>
 <body>
+    <h1>Multi-Mode Text Enrichment System</h1>
+    
     <div class="main-container">
-        <h1>Multi-Mode Text Enrichment System</h1>
-        
         <!-- Mode Selection -->
         <div class="mode-selector">
-            <button class="mode-btn active" data-mode="mode_1">
-                Context-Aware Completion
-            </button>
-            <button class="mode-btn" data-mode="mode_2">
-                Structured Enrichment  
-            </button>
-            <button class="mode-btn" data-mode="mode_3">
-                Input Refinement
-            </button>
+            <button class="mode-btn active" data-mode="mode_1">Context-Aware Completion</button>
+            <button class="mode-btn" data-mode="mode_2">Structured Context Enrichment</button>
+            <button class="mode-btn" data-mode="mode_3">Flexible Input Refinement</button>
+            <button class="mode-btn" data-mode="mode_4">Payload Description Agent</button>
         </div>
         
         <!-- Mode Descriptions -->
-        <div id="desc-mode_1" class="mode-description active">
-            <strong>Context-Aware Completion:</strong> Continue your text naturally based on context. Generate multiple suggestions and choose the best one.
+        <div class="mode-description active" id="desc-mode_1">
+            <strong>Context-Aware Completion:</strong> Intelligently continues your text while maintaining style, tone, and context. Perfect for extending paragraphs, completing thoughts, or continuing narratives.
         </div>
-        <div id="desc-mode_2" class="mode-description">
-            <strong>Structured Enrichment:</strong> Enhance your text using a specific header/topic. Perfect for expanding on ideas with focused context.
+        <div class="mode-description" id="desc-mode_2">
+            <strong>Structured Context Enrichment:</strong> Enhances your text based on a specific topic or header context. Enriches content while staying aligned with the provided theme. <span style="color:#4CAF50">Now accepts as little as 2 words.</span>
         </div>
-        <div id="desc-mode_3" class="mode-description">
-            <strong>Input Refinement:</strong> Transform messy, incomplete text into polished, well-structured content. No suggestions - just one refined output.
+        <div class="mode-description" id="desc-mode_3">
+            <strong>Flexible Input Refinement:</strong> Polishes messy, incomplete, or grammatically incorrect text. Improves clarity and structure while preserving original meaning.
+        </div>
+        <div class="mode-description" id="desc-mode_4">
+            <strong>Payload Description Agent:</strong> Generates one or more natural language descriptions from a high-level context (header) and a structured JSON body. Useful for summarizing or describing structured data (e.g., transaction details).
         </div>
         
         <!-- Input Section -->
         <div class="input-section">
-            <!-- Header input (Mode 2 only) -->
-            <div class="input-group hidden" id="header-group">
-                <label for="headerInput">Header/Topic:</label>
-                <input type="text" id="headerInput" placeholder="Enter the main topic or header...">
+            <!-- Text Input (for modes 1, 2, 3) -->
+            <div class="input-group" id="text-input-group">
+                <label for="text-input">Input Text:</label>
+                <textarea id="text-input" placeholder="Enter your text here..."></textarea>
+                <div class="counter" id="text-counter">0 words, 0 characters</div>
             </div>
             
-            <!-- Main text input -->
-            <div class="input-group">
-                <label for="textInput" id="textLabel">Your Text:</label>
-                <textarea id="textInput" placeholder="Start writing your text here... (minimum 23 words required)"></textarea>
-                <div class="word-count" id="wordCount">Words: 0 (minimum 23 required)</div>
+            <!-- Header Input (for modes 2, 4) -->
+            <div class="input-group" id="header-input-group" style="display: none;">
+                <label for="header-input">Header/Topic Context:</label>
+                <input type="text" id="header-input" placeholder="Enter topic or context header...">
+                <div class="counter" id="header-counter">0 words, 0 characters</div>
+            </div>
+            
+            <!-- Body Input (for mode 4) -->
+            <div class="input-group" id="body-input-group" style="display: none;">
+                <label for="body-input">Body (JSON):</label>
+                <textarea id="body-input" placeholder='{"amount": 100, "currency": "USD", "merchant": "Store"}'></textarea>
             </div>
         </div>
         
-        <!-- Controls -->
-        <div class="controls">
-            <div class="settings-group">
-                <div class="setting">
-                    <label for="maxTokens">Max tokens:</label>
-                    <input type="number" id="maxTokens" min="20" max="200" value="50">
+        <!-- Dynamic Parameters Section -->
+        <div class="parameters-section">
+            <div class="parameters-header">Dynamic Parameters</div>
+            
+            <div class="parameter-row">
+                <div class="parameter-group">
+                    <label for="min-words">Minimum Input Words:</label>
+                    <input type="number" id="min-words" min="1" max="100" placeholder="Auto">
+                </div>
+                
+                <div class="parameter-group">
+                    <label for="max-length-type">Output Length Type:</label>
+                    <select id="max-length-type">
+                        <option value="">No Limit</option>
+                        <option value="characters">Characters</option>
+                        <option value="words">Words</option>
+                    </select>
+                </div>
+                
+                <div class="parameter-group">
+                    <label for="max-length-value">Max Length Value:</label>
+                    <input type="number" id="max-length-value" min="1" max="2000" placeholder="200" disabled>
                 </div>
             </div>
-            
-            <div class="result-controls">
-                <button id="generateBtn" disabled>Generate</button>
-                <button id="anotherBtn" class="secondary-btn" disabled style="display: none;">Another Suggestion</button>
-                <button id="useBtn" class="success-btn" disabled style="display: none;">Use This</button>
-            </div>
         </div>
         
-        <!-- Messages -->
-        <div class="message error" id="errorMessage"></div>
-        <div class="message loading" id="loadingMessage">Generating enrichment...</div>
-        <div class="message success" id="successMessage"></div>
+        <!-- Action Buttons -->
+        <div class="button-group">
+            <button class="btn btn-primary" id="generate-btn">Generate Enrichment</button>
+            <button class="btn btn-secondary" id="regenerate-btn" style="display: none;">Generate Alternative</button>
+        </div>
+        
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Generating enriched content...</div>
+        </div>
+        
+        <!-- Error Display -->
+        <div class="error" id="error"></div>
         
         <!-- Results Section -->
-        <div class="results-section">
-            <div class="results-header">
-                <h3 id="resultsTitle">AI Enrichment Results</h3>
-                <button id="clearBtn" class="danger-btn" style="display: none;">Clear Suggestions</button>
-            </div>
-            
-            <div class="result-display empty" id="resultDisplay">
-                Select a mode and write at least 23 words to see AI-powered enrichment...
-            </div>
-            
-            <div class="suggestion-navigation" id="suggestionNav" style="display: none;">
-                <div class="suggestion-counter" id="suggestionCounter">Suggestion 1 of 1</div>
-                <div class="nav-buttons">
-                    <button class="nav-btn" id="prevBtn" disabled>← Previous</button>
-                    <button class="nav-btn" id="nextBtn" disabled>Next →</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Info Section -->
-        <div class="info">
-            <p><strong>How to use:</strong></p>
-            <ul>
-                <li><strong>Mode 1:</strong> Write text and get intelligent continuations with multiple suggestions</li>
-                <li><strong>Mode 2:</strong> Provide a header/topic and body text for structured enrichment</li>
-                <li><strong>Mode 3:</strong> Input messy or incomplete text for instant refinement</li>
-                <li>All modes require at least 23 words to generate meaningful results</li>
-                <li>Use navigation buttons to cycle through suggestions (Modes 1 & 2 only)</li>
-                <li>Click "Use This" to copy the selected result to your clipboard</li>
-            </ul>
+        <div class="results-section" id="results-section" style="display: none;">
+            <div class="results-header">Generated Results</div>
+            <div id="results-container"></div>
         </div>
     </div>
-    
+
     <script>
+        // Application state
+        let currentMode = 'mode_1';
+        let lastRequest = null;
+        const API_BASE = 'http://localhost:8000'; // Update this to your backend URL
+        
+        // Mode configurations
+        const modeConfigs = {
+            mode_1: {
+                requiresText: true,
+                requiresHeader: false,
+                requiresBody: false,
+                supportsRegenerate: true,
+                defaultMinWords: 20
+            },
+            mode_2: {
+                requiresText: true,
+                requiresHeader: true,
+                requiresBody: false,
+                supportsRegenerate: true,
+                defaultMinWords: 2
+            },
+            mode_3: {
+                requiresText: true,
+                requiresHeader: false,
+                requiresBody: false,
+                supportsRegenerate: false,
+                defaultMinWords: 0
+            },
+            mode_4: {
+                requiresText: false,
+                requiresHeader: true,
+                requiresBody: true,
+                supportsRegenerate: true,
+                defaultMinWords: 2
+            }
+        };
+        
         // DOM Elements
         const modeButtons = document.querySelectorAll('.mode-btn');
         const modeDescriptions = document.querySelectorAll('.mode-description');
-        const headerGroup = document.getElementById('header-group');
-        const headerInput = document.getElementById('headerInput');
-        const textInput = document.getElementById('textInput');
-        const textLabel = document.getElementById('textLabel');
-        const wordCount = document.getElementById('wordCount');
-        const maxTokensInput = document.getElementById('maxTokens');
-        const generateBtn = document.getElementById('generateBtn');
-        const anotherBtn = document.getElementById('anotherBtn');
-        const useBtn = document.getElementById('useBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const errorMessage = document.getElementById('errorMessage');
-        const loadingMessage = document.getElementById('loadingMessage');
-        const successMessage = document.getElementById('successMessage');
-        const resultDisplay = document.getElementById('resultDisplay');
-        const resultsTitle = document.getElementById('resultsTitle');
-        const suggestionNav = document.getElementById('suggestionNav');
-        const suggestionCounter = document.getElementById('suggestionCounter');
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
+        const textInputGroup = document.getElementById('text-input-group');
+        const headerInputGroup = document.getElementById('header-input-group');
+        const bodyInputGroup = document.getElementById('body-input-group');
+        const textInput = document.getElementById('text-input');
+        const headerInput = document.getElementById('header-input');
+        const bodyInput = document.getElementById('body-input');
+        const textCounter = document.getElementById('text-counter');
+        const headerCounter = document.getElementById('header-counter');
+        const minWordsInput = document.getElementById('min-words');
+        const maxLengthType = document.getElementById('max-length-type');
+        const maxLengthValue = document.getElementById('max-length-value');
+        const generateBtn = document.getElementById('generate-btn');
+        const regenerateBtn = document.getElementById('regenerate-btn');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const resultsSection = document.getElementById('results-section');
+        const resultsContainer = document.getElementById('results-container');
         
-        // State
-        let currentMode = 'mode_1';
-        let suggestions = [];
-        let currentSuggestionIndex = 0;
-        let typingTimer;
-        
-        // Utility Functions
+        // Utility functions
         function countWords(text) {
-            const words = text.trim().match(/\b\w+\b/g);
-            return words ? words.length : 0;
+            if (!text) return 0;
+            return text.trim().split(/\s+/).filter(word => word.length > 0).length;
         }
         
-        function showMessage(element, message) {
-            element.textContent = message;
-            element.style.display = 'block';
+        function countCharacters(text) {
+            return text ? text.trim().length : 0;
+        }
+        
+        function updateCounter(element, text) {
+            const words = countWords(text);
+            const chars = countCharacters(text);
+            element.textContent = `${words} words, ${chars} characters`;
+            
+            // Update counter styling based on requirements
+            const config = modeConfigs[currentMode];
+            const minWords = parseInt(minWordsInput.value) || config.defaultMinWords;
+            
+            element.classList.remove('warning', 'error');
+            if (words < minWords) {
+                element.classList.add('error');
+            } else if (words < minWords + 5) {
+                element.classList.add('warning');
+            }
+        }
+        
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('active');
             setTimeout(() => {
-                element.style.display = 'none';
+                error.classList.remove('active');
             }, 5000);
         }
         
-        function hideMessages() {
-            errorMessage.style.display = 'none';
-            loadingMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-        }
-        
-        // Mode Management
-        function switchMode(mode) {
-            currentMode = mode;
+        function addResult(content, mode, isRegeneration = false) {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
             
-            // Update active mode button
-            modeButtons.forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.mode === mode);
-            });
+            const meta = document.createElement('div');
+            meta.className = 'result-meta';
+            meta.textContent = `Mode: ${mode.replace('_', ' ').toUpperCase()}${isRegeneration ? ' (Alternative)' : ''} • Generated: ${new Date().toLocaleTimeString()}`;
             
-            // Update mode descriptions
-            modeDescriptions.forEach(desc => {
-                desc.classList.toggle('active', desc.id === `desc-${mode}`);
-            });
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'result-content';
+            contentDiv.textContent = content;
             
-            // Update UI based on mode
-            updateUIForMode(mode);
+            // Add "Use This Suggestion" button
+            const useBtn = document.createElement('button');
+            useBtn.className = 'btn btn-secondary';
+            useBtn.textContent = 'Use This Suggestion';
+            useBtn.onclick = () => {
+                alert('Suggestion selected! You can now use this text elsewhere.');
+            };
             
-            // Reset suggestions
-            resetSuggestions();
-            updateWordCount();
-        }
-        
-        function updateUIForMode(mode) {
-            switch(mode) {
-                case 'mode_1':
-                    headerGroup.classList.add('hidden');
-                    textLabel.textContent = 'Your Text:';
-                    textInput.placeholder = 'Start writing your text here... (minimum 23 words required)';
-                    anotherBtn.style.display = 'none';
-                    useBtn.style.display = 'none';
-                    generateBtn.textContent = 'Generate Completion';
-                    resultsTitle.textContent = 'Context-Aware Completions';
-                    break;
-                    
-                case 'mode_2':
-                    headerGroup.classList.remove('hidden');
-                    textLabel.textContent = 'Body Text:';
-                    textInput.placeholder = 'Enter the body text to enrich... (minimum 23 words required)';
-                    anotherBtn.style.display = 'none';
-                    useBtn.style.display = 'none';
-                    generateBtn.textContent = 'Generate Enrichment';
-                    resultsTitle.textContent = 'Structured Enrichment Results';
-                    break;
-                    
-                case 'mode_3':
-                    headerGroup.classList.add('hidden');
-                    textLabel.textContent = 'Unstructured Input:';
-                    textInput.placeholder = 'Enter messy, incomplete, or unstructured text... (minimum 23 words required)';
-                    anotherBtn.style.display = 'none';
-                    useBtn.style.display = 'none';
-                    generateBtn.textContent = 'Refine Text';
-                    resultsTitle.textContent = 'Refined Text Output';
-                    break;
-            }
-        }
-        
-        // Word Count Management
-        function updateWordCount() {
-            const text = textInput.value;
-            const words = countWords(text);
-            wordCount.textContent = `Words: ${words} (minimum 23 required)`;
+            resultItem.appendChild(meta);
+            resultItem.appendChild(contentDiv);
+            resultItem.appendChild(useBtn);
             
-            if (words < 23) {
-                wordCount.className = 'word-count insufficient';
-                generateBtn.disabled = true;
-                anotherBtn.disabled = true;
+            if (isRegeneration) {
+                resultsContainer.insertBefore(resultItem, resultsContainer.firstChild);
             } else {
-                wordCount.className = 'word-count sufficient';
-                generateBtn.disabled = false;
+                resultsContainer.appendChild(resultItem);
+            }
+            
+            resultsSection.style.display = 'block';
+        }
+        
+        // Event listeners
+        modeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Update active mode button
+                modeButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Update active mode description
+                modeDescriptions.forEach(desc => desc.classList.remove('active'));
+                document.getElementById(`desc-${button.dataset.mode}`).classList.add('active');
+                
+                // Update current mode
+                currentMode = button.dataset.mode;
+                
+                // Update UI based on mode requirements
+                updateUIForMode();
+                
+                // Update counters
+                updateCounter(textCounter, textInput.value);
+                updateCounter(headerCounter, headerInput.value);
+                
+                // Update minimum words placeholder
+                minWordsInput.placeholder = modeConfigs[currentMode].defaultMinWords.toString();
+                
+                // Hide regenerate button when switching modes
+                regenerateBtn.style.display = 'none';
+                lastRequest = null;
+            });
+        });
+        
+        function updateUIForMode() {
+            const config = modeConfigs[currentMode];
+            
+            // Show/hide input groups based on mode requirements
+            textInputGroup.style.display = config.requiresText ? 'block' : 'none';
+            headerInputGroup.style.display = config.requiresHeader ? 'block' : 'none';
+            bodyInputGroup.style.display = config.requiresBody ? 'block' : 'none';
+            
+            // Update labels based on mode
+            if (currentMode === 'mode_4') {
+                headerInput.placeholder = 'Enter high-level context for description generation...';
+            } else if (currentMode === 'mode_2') {
+                headerInput.placeholder = 'Enter topic or theme for enrichment...';
             }
         }
         
-        // Suggestion Management
-        function resetSuggestions() {
-            suggestions = [];
-            currentSuggestionIndex = 0;
-            updateSuggestionDisplay();
-            anotherBtn.disabled = true;
-            useBtn.disabled = true;
-            clearBtn.style.display = 'none';
-        }
+        // Input event listeners for counters
+        textInput.addEventListener('input', () => {
+            updateCounter(textCounter, textInput.value);
+        });
         
-        function updateSuggestionDisplay() {
-            if (suggestions.length === 0) {
-                const modeTexts = {
-                    'mode_1': 'Click "Generate Completion" to get context-aware continuations...',
-                    'mode_2': 'Click "Generate Enrichment" to enhance your structured content...',
-                    'mode_3': 'Click "Refine Text" to polish your unstructured input...'
+        headerInput.addEventListener('input', () => {
+            updateCounter(headerCounter, headerInput.value);
+        });
+        
+        // Max length type change handler
+        maxLengthType.addEventListener('change', () => {
+            const hasLimit = maxLengthType.value !== '';
+            maxLengthValue.disabled = !hasLimit;
+            if (!hasLimit) {
+                maxLengthValue.value = '';
+            } else {
+                maxLengthValue.placeholder = maxLengthType.value === 'words' ? '50' : '200';
+            }
+        });
+        
+        // Generate button handler
+        generateBtn.addEventListener('click', async () => {
+            await generateCompletion(false);
+        });
+        
+        // Regenerate button handler
+        regenerateBtn.addEventListener('click', async () => {
+            await generateCompletion(true);
+        });
+        
+        async function generateCompletion(isRegeneration = false) {
+            const config = modeConfigs[currentMode];
+            
+            // Prepare request data
+            const requestData = {
+                mode: currentMode,
+                regenerate: isRegeneration
+            };
+            
+            // Add text if required
+            if (config.requiresText) {
+                if (!textInput.value.trim()) {
+                    showError('Please enter text input for this mode.');
+                    return;
+                }
+                requestData.text = textInput.value.trim();
+            }
+            
+            // Add header if required  
+            if (config.requiresHeader) {
+                if (!headerInput.value.trim()) {
+                    showError('Please enter a header/topic for this mode.');
+                    return;
+                }
+                requestData.header = headerInput.value.trim();
+            }
+            
+            // Add body if required (mode 4)
+            if (config.requiresBody) {
+                if (!bodyInput.value.trim()) {
+                    showError('Please enter body data (JSON) for this mode.');
+                    return;
+                }
+                try {
+                    requestData.body = JSON.parse(bodyInput.value.trim());
+                } catch (e) {
+                    showError('Invalid JSON format in body field.');
+                    return;
+                }
+            }
+            
+            // Add dynamic parameters
+            if (minWordsInput.value) {
+                requestData.min_input_words = parseInt(minWordsInput.value);
+            }
+            
+            if (maxLengthType.value && maxLengthValue.value) {
+                requestData.max_output_length = {
+                    type: maxLengthType.value,
+                    value: parseInt(maxLengthValue.value)
                 };
-                
-                resultDisplay.textContent = countWords(textInput.value) >= 23 ? 
-                    modeTexts[currentMode] : 
-                    'Write at least 23 words to see AI-powered enrichment...';
-                    
-                resultDisplay.className = 'result-display empty';
-                suggestionNav.style.display = 'none';
-                useBtn.disabled = true;
+            }
+            
+            // Validate minimum word count
+            const minWords = requestData.min_input_words || config.defaultMinWords;
+            if (config.requiresText && countWords(textInput.value) < minWords) {
+                showError(`Please provide at least ${minWords} words in the text input.`);
                 return;
             }
             
-            const currentSuggestion = suggestions[currentSuggestionIndex];
-            resultDisplay.textContent = currentSuggestion;
-            resultDisplay.className = 'result-display';
-            
-            // Update navigation for modes 1 and 2
-            if (currentMode !== 'mode_3') {
-                suggestionCounter.textContent = `Suggestion ${currentSuggestionIndex + 1} of ${suggestions.length}`;
-                suggestionNav.style.display = 'flex';
-                
-                prevBtn.disabled = currentSuggestionIndex === 0;
-                nextBtn.disabled = currentSuggestionIndex === suggestions.length - 1;
-                
-                anotherBtn.style.display = suggestions.length < 5 ? 'inline-block' : 'none';
-                anotherBtn.disabled = suggestions.length >= 5;
-                clearBtn.style.display = 'inline-block';
-            } else {
-                suggestionNav.style.display = 'none';
-                clearBtn.style.display = 'none';
-            }
-            
-            useBtn.style.display = 'inline-block';
-            useBtn.disabled = false;
-        }
-        
-        // API Communication
-        async function generateEnrichment(regenerate = false) {
-            const text = textInput.value.trim();
-            const words = countWords(text);
-            
-            if (words < 23) {
-                showMessage(errorMessage, 'Please provide at least 23 words before generating enrichment.');
+            if (config.requiresHeader && countWords(headerInput.value) < minWords) {
+                showError(`Please provide at least ${minWords} words in the header input.`);
                 return;
             }
             
-            // Mode 2 validation
-            if (currentMode === 'mode_2' && !headerInput.value.trim()) {
-                showMessage(errorMessage, 'Header is required for Structured Enrichment mode.');
-                return;
-            }
-            
-            hideMessages();
-            loadingMessage.style.display = 'block';
+            // Show loading state
+            loading.classList.add('active');
+            generateBtn.disabled = true;
+            regenerateBtn.disabled = true;
             
             try {
-                const requestBody = {
-                    text: text,
-                    mode: currentMode,
-                    max_tokens: parseInt(maxTokensInput.value),
-                    regenerate: regenerate
-                };
-                
-                if (currentMode === 'mode_2') {
-                    requestBody.header = headerInput.value.trim();
-                }
-                
-                const response = await fetch('http://localhost:8000/autocomplete', {
+                const response = await fetch(`${API_BASE}/autocomplete`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(requestBody)
+                    body: JSON.stringify(requestData)
                 });
                 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.detail || 'API request failed');
+                    throw new Error(errorData.detail || 'Generation failed');
                 }
                 
-                const data = await response.json();
+                const result = await response.json();
                 
-                // Add new suggestion
-                suggestions.push(data.completion);
-                currentSuggestionIndex = suggestions.length - 1;
+                // Add result to display
+                addResult(result.completion, result.mode, isRegeneration);
                 
-                updateSuggestionDisplay();
+                // Store last request for regeneration
+                lastRequest = requestData;
                 
-                if (currentMode !== 'mode_3') {
-                    anotherBtn.disabled = suggestions.length >= 5;
+                // Show regenerate button if supported
+                if (config.supportsRegenerate && !isRegeneration) {
+                    regenerateBtn.style.display = 'inline-block';
                 }
                 
-            } catch (error) {
-                console.error('Error generating enrichment:', error);
-                showMessage(errorMessage, error.message);
+            } catch (err) {
+                showError(err.message || 'An error occurred during generation');
             } finally {
-                loadingMessage.style.display = 'none';
+                // Hide loading state
+                loading.classList.remove('active');
+                generateBtn.disabled = false;
+                regenerateBtn.disabled = false;
             }
         }
         
-        // Clipboard functionality
-        async function copyToClipboard(text) {
-            try {
-                await navigator.clipboard.writeText(text);
-                showMessage(successMessage, 'Text copied to clipboard!');
-            } catch (error) {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    showMessage(successMessage, 'Text copied to clipboard!');
-                } catch (fallbackError) {
-                    showMessage(errorMessage, 'Failed to copy to clipboard. Please copy manually.');
-                }
-                document.body.removeChild(textArea);
-            }
-        }
-        
-        // Clear suggestions
-        async function clearSuggestions() {
-            try {
-                const requestParams = new URLSearchParams({
-                    text: textInput.value.trim()
-                });
-                
-                if (currentMode === 'mode_2' && headerInput.value.trim()) {
-                    requestParams.append('header', headerInput.value.trim());
-                }
-                
-                await fetch(`http://localhost:8000/suggestions/${currentMode}?${requestParams}`, {
-                    method: 'DELETE'
-                });
-                
-                resetSuggestions();
-                showMessage(successMessage, 'Suggestions cleared successfully!');
-                
-            } catch (error) {
-                console.error('Error clearing suggestions:', error);
-                showMessage(errorMessage, 'Failed to clear suggestions.');
-            }
-        }
-        
-        // Event Listeners
-        modeButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                switchMode(btn.dataset.mode);
-            });
-        });
-        
-        textInput.addEventListener('input', () => {
-            clearTimeout(typingTimer);
-            typingTimer = setTimeout(updateWordCount, 100);
-        });
-        
-        generateBtn.addEventListener('click', () => {
-            generateEnrichment(false);
-        });
-        
-        anotherBtn.addEventListener('click', () => {
-            generateEnrichment(true);
-        });
-        
-        useBtn.addEventListener('click', () => {
-            if (suggestions.length > 0 && currentSuggestionIndex < suggestions.length) {
-                const selectedText = suggestions[currentSuggestionIndex];
-                copyToClipboard(selectedText);
-            }
-        });
-        
-        clearBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to clear all suggestions?')) {
-                clearSuggestions();
-            }
-        });
-        
-        prevBtn.addEventListener('click', () => {
-            if (currentSuggestionIndex > 0) {
-                currentSuggestionIndex--;
-                updateSuggestionDisplay();
-            }
-        });
-        
-        nextBtn.addEventListener('click', () => {
-            if (currentSuggestionIndex < suggestions.length - 1) {
-                currentSuggestionIndex++;
-                updateSuggestionDisplay();
-            }
-        });
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + Enter to generate
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                if (!generateBtn.disabled) {
-                    generateEnrichment(false);
-                }
-            }
-            
-            // Ctrl/Cmd + Shift + Enter for another suggestion
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
-                e.preventDefault();
-                if (!anotherBtn.disabled && anotherBtn.style.display !== 'none') {
-                    generateEnrichment(true);
-                }
-            }
-            
-            // Ctrl/Cmd + U to use current suggestion
-            if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
-                e.preventDefault();
-                if (!useBtn.disabled && useBtn.style.display !== 'none') {
-                    useBtn.click();
-                }
-            }
-            
-            // Arrow keys for navigation
-            if (suggestionNav.style.display === 'flex') {
-                if (e.key === 'ArrowLeft' && !prevBtn.disabled) {
-                    e.preventDefault();
-                    prevBtn.click();
-                }
-                if (e.key === 'ArrowRight' && !nextBtn.disabled) {
-                    e.preventDefault();
-                    nextBtn.click();
-                }
-            }
-        });
-        
-        // Initialize
-        updateWordCount();
-        updateSuggestionDisplay();
-        
-        // Add mode switching keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.altKey) {
-                switch(e.key) {
-                    case '1':
-                        e.preventDefault();
-                        switchMode('mode_1');
-                        break;
-                    case '2':
-                        e.preventDefault();
-                        switchMode('mode_2');
-                        break;
-                    case '3':
-                        e.preventDefault();
-                        switchMode('mode_3');
-                        break;
-                }
-            }
-        });
+        // Initialize UI
+        updateUIForMode();
+        updateCounter(textCounter, textInput.value);
+        updateCounter(headerCounter, headerInput.value);
     </script>
 </body>
 </html>

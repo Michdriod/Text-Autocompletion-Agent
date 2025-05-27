@@ -1,9 +1,11 @@
-# Mode 1: Context-Aware Completion
-# This mode provides intelligent text continuation based on the given context.
+# Mode 1: Context-Aware Regenerative Completion
+# This mode enhances long-form user input using AI while preserving context.
 # It maintains the style, tone, and semantics of the input text while generating
-# natural continuations.
+# enriched versions with dynamic output length control.
 
+from typing import Optional, Dict, Union
 from utils.generator import GroqGenerator
+from utils.validator import calculate_max_tokens
 
 class Mode1Logic:    
     def __init__(self):
@@ -12,29 +14,42 @@ class Mode1Logic:
     
     def get_system_prompt(self) -> str:
         return (
-            "You are a context-aware writing assistant. Given a coherent input from the user, "
-            "your task is to intelligently continue or complete the text based strictly on the "
-            "user's intent. Do not invent new context. Stay within the style, tone, and semantics "
-            "of the given content. Always generate a natural, logical continuation."
+            "You are a context-aware writing assistant. Your task is to enhance and enrich "
+            "the user's input while strictly preserving its original context, style, and intent. "
+            "Do not invent new context or change the meaning. Focus on improving clarity, "
+            "structure, and flow while maintaining the original message. "
+            "Keep your enriched version concise and focused."
         )
     
-    def prepare_user_message(self, text: str) -> str:
-        return f"Continue this text naturally: {text}"
-    
-    def get_generation_parameters(self, regenerate: bool = False) -> dict:
-        params = {"temperature": 0.3, "top_p": 0.95}
+    def prepare_user_message(self, text: str, max_output_length: Optional[Dict[str, Union[str, int]]] = None) -> str:
+        message = (
+            f"Enhance and enrich this text while preserving its context and meaning:\n\n{text}\n\n"
+            "Provide an improved version that maintains the original intent but with better "
+            "structure, clarity, and flow."
+        )
         
-        # Increase variation for regeneration requests
-        if regenerate:
-            params["temperature"] = min(params["temperature"] + 0.3, 0.9)
-            params["top_p"] = max(params["top_p"] - 0.1, 0.7)
+        if max_output_length:
+            length_type = max_output_length.get("type", "characters")
+            length_value = max_output_length.get("value", 200)
+            message += f"\n\nIMPORTANT: Keep your enriched version to a maximum of {length_value} {length_type}."
         
-        return params
+        return message
     
-    async def process(self, text: str, max_tokens: int, regenerate: bool = False) -> str:
+    def get_generation_parameters(self) -> dict:
+        # Use lower temperature for more focused, context-preserving enrichment
+        return {"temperature": 0.3, "top_p": 0.95}
+    
+    async def process(
+        self, 
+        text: str, 
+        max_output_length: Optional[Dict[str, Union[str, int]]] = None
+    ) -> str:
         system_prompt = self.get_system_prompt()
-        user_message = self.prepare_user_message(text)
-        gen_params = self.get_generation_parameters(regenerate)
+        user_message = self.prepare_user_message(text, max_output_length)
+        gen_params = self.get_generation_parameters()
+        
+        # Calculate max tokens based on output length requirements
+        max_tokens = calculate_max_tokens(max_output_length)
         
         completion = await self.generator.generate(
             system_prompt=system_prompt,

@@ -1,10 +1,11 @@
 # Mode 2: Structured Context Enrichment
-# This mode enhances text based on a provided header/topic context.
-# It maintains alignment with the topic while enriching the content
-# without introducing irrelevant information.
+# This mode generates meaningful output from a topic and its context.
+# It elaborates on the topic using the provided context while maintaining
+# relevance and coherence. Supports dynamic output length control.
 
-
+from typing import Optional, Dict, Union
 from utils.generator import GroqGenerator
+from utils.validator import calculate_max_tokens
 
 class Mode2Logic:
     def __init__(self):
@@ -13,29 +14,50 @@ class Mode2Logic:
     
     def get_system_prompt(self) -> str:
         return (
-            "You are a structured enrichment assistant. Using the context header provided, "
-            "enrich and enhance the user's body text without adding irrelevant or new ideas. "
-            "Maintain alignment with the topic. Output should be polished, clear, and relevant. "
-            "Only respond using the given user context."
+            "You are a structured content generator. Your task is to create meaningful, "
+            "engaging content based on the provided topic and context. Focus on elaborating "
+            "the topic using the context as a foundation. Maintain relevance and coherence "
+            "while adding value through thoughtful expansion. Keep your output clear, "
+            "well-structured, and focused on the topic."
         )
     
-    def prepare_user_message(self, text: str, header: str) -> str:
-        return f"Header/Topic: {header}\n\nBody text to enrich: {text}\n\nEnriched version:"
-    
-    def get_generation_parameters(self, regenerate: bool = False) -> dict:
-        params = {"temperature": 0.4, "top_p": 0.9}
+    def prepare_user_message(
+        self, 
+        text: str, 
+        header: str, 
+        max_output_length: Optional[Dict[str, Union[str, int]]] = None
+    ) -> str:
+        message = (
+            f"Topic: {header}\n\n"
+            f"Context: {text}\n\n"
+            "Generate a meaningful elaboration of this topic using the provided context. "
+            "Focus on creating engaging, relevant content that expands on the topic while "
+            "maintaining coherence with the context."
+        )
         
-        # Increase variation for regeneration requests
-        if regenerate:
-            params["temperature"] = min(params["temperature"] + 0.3, 0.9)
-            params["top_p"] = max(params["top_p"] - 0.1, 0.7)
+        if max_output_length:
+            length_type = max_output_length.get("type", "characters")
+            length_value = max_output_length.get("value", 200)
+            message += f"\n\nIMPORTANT: Keep your elaboration to a maximum of {length_value} {length_type}."
         
-        return params
+        return message
     
-    async def process(self, text: str, header: str, max_tokens: int, regenerate: bool = False) -> str:
+    def get_generation_parameters(self) -> dict:
+        # Use moderate temperature for balanced creativity and coherence
+        return {"temperature": 0.4, "top_p": 0.9}
+    
+    async def process(
+        self, 
+        text: str, 
+        header: str, 
+        max_output_length: Optional[Dict[str, Union[str, int]]] = None
+    ) -> str:
         system_prompt = self.get_system_prompt()
-        user_message = self.prepare_user_message(text, header)
-        gen_params = self.get_generation_parameters(regenerate)
+        user_message = self.prepare_user_message(text, header, max_output_length)
+        gen_params = self.get_generation_parameters()
+        
+        # Calculate max tokens based on output length requirements
+        max_tokens = calculate_max_tokens(max_output_length)
         
         completion = await self.generator.generate(
             system_prompt=system_prompt,

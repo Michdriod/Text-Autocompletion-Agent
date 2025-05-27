@@ -1,116 +1,128 @@
 # Autocomplete handler module that manages text enrichment requests and suggestions.
-# Provides endpoints for text completion, suggestion retrieval, and suggestion management.
-
+# Provides endpoints for text completion with dynamic parameters and on-demand generation.
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from enum import Enum
 import httpx
 
 from logic.mode_1 import Mode1Logic
 from logic.mode_2 import Mode2Logic
 from logic.mode_3 import Mode3Logic
-from utils.validator import validate_minimum_word_count
+from logic.mode_4 import Mode4Logic
+from utils.validator import (
+    validate_minimum_word_count,
+    validate_combined_word_count,
+    get_default_min_words,
+    validate_output_length,
+    trim_output
+)
 
 router = APIRouter()
 
 # Define available enrichment modes
 class ModeType(str, Enum):
-    mode_1 = "mode_1"  # Context-Aware Completion
+    mode_1 = "mode_1"  # Context-Aware Regenerative Completion
     mode_2 = "mode_2"  # Structured Context Enrichment
-    mode_3 = "mode_3"  # Flexible Input Refinement
+    mode_3 = "mode_3"  # Input Refinement
+    mode_4 = "mode_4"  # Payload Description Agent
 
 # Request model for text enrichment
 class AutocompleteRequest(BaseModel):
-    text: str  # Input text to be enriched
-    mode: ModeType  # Selected enrichment mode
-    header: Optional[str] = None  # Required for mode_2 (topic/context header)
-    regenerate: Optional[bool] = False  # Whether to generate alternative completion
-    max_tokens: Optional[int] = 50  # Maximum tokens in completion
+    text: Optional[str] = None
+    mode: ModeType
+    header: Optional[str] = None
+    body: Optional[Dict[str, Any]] = None  # For mode_4
+    min_input_words: Optional[int] = None
+    max_output_length: Optional[Dict[str, Union[str, int]]] = None
 
 # Response model for text enrichment
 class AutocompleteResponse(BaseModel):
     completion: str  # Generated text completion
     mode: str  # Mode used for generation
-    suggestion_count: Optional[int] = None  # Number of stored suggestions
-
-# In-memory storage for suggestions (consider using Redis or database in production)
-suggestion_storage: Dict[str, List[str]] = {}
-
-def get_storage_key(mode: ModeType, text: str, header: Optional[str] = None) -> str:
-    if mode == ModeType.mode_2 and header:
-        return f"{mode}_{hash(text + header)}"
-    return f"{mode}_{hash(text)}"
 
 @router.post("/autocomplete", response_model=AutocompleteResponse)
 async def autocomplete(request: AutocompleteRequest):
     try:
-        # Validate minimum word count requirement
-        if not validate_minimum_word_count(request.text):
+        min_words = request.min_input_words or get_default_min_words(request.mode)
+        if request.mode in [ModeType.mode_2, ModeType.mode_4] and not request.header:
             raise HTTPException(
                 status_code=422,
-                detail="Please provide at least 23 words before generating enrichment."
+                detail=f"Header is required for {request.mode}."
             )
-        
-        # Validate mode-specific requirements
-        if request.mode == ModeType.mode_2 and not request.header:
-            raise HTTPException(
-                status_code=422,
-                detail="Header is required for mode_2 (Structured Context Enrichment)."
-            )
-        
-        # Mode 3 doesn't support regeneration
-        if request.mode == ModeType.mode_3 and request.regenerate:
-            raise HTTPException(
-                status_code=422,
-                detail="Mode 3 (Flexible Input Refinement) does not support regeneration."
-            )
-        
-        # Process request using appropriate mode logic
+        if request.mode == ModeType.mode_4:
+            if not request.body:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Body is required for Payload Description Agent mode."
+                )
+            if not validate_combined_word_count(request.header or "", str(request.body), request.mode):
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Header and body combined must contain at least {min_words} words."
+                )
+        elif request.mode == ModeType.mode_2:
+            if not request.text:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Text input is required for Structured Context Enrichment mode."
+                )
+            if not validate_combined_word_count(request.header or "", request.text, request.mode):
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Header and text combined must contain at least {min_words} words."
+                )
+        elif request.mode == ModeType.mode_1:
+            if not request.text:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Text input is required for Context-Aware Regenerative Completion mode."
+                )
+            if not validate_minimum_word_count(request.text, request.mode, min_words):
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Please provide at least {min_words} words for Context-Aware Regenerative Completion."
+                )
+        elif request.mode == ModeType.mode_3:
+            if not request.text:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Text input is required for Input Refinement mode."
+                )
         completion = None
         if request.mode == ModeType.mode_1:
             mode_logic = Mode1Logic()
             completion = await mode_logic.process(
                 text=request.text,
-                max_tokens=request.max_tokens or 50,
-                regenerate=request.regenerate or False
+                max_output_length=request.max_output_length
             )
         elif request.mode == ModeType.mode_2:
             mode_logic = Mode2Logic()
             completion = await mode_logic.process(
                 text=request.text,
                 header=request.header,
-                max_tokens=request.max_tokens or 50,
-                regenerate=request.regenerate or False
+                max_output_length=request.max_output_length
             )
         elif request.mode == ModeType.mode_3:
             mode_logic = Mode3Logic()
             completion = await mode_logic.process(
                 text=request.text,
-                max_tokens=request.max_tokens or 50
+                max_output_length=request.max_output_length
             )
-        
-        # Store suggestions for modes 1 and 2 (up to 5 per input)
-        suggestion_count = None
-        if request.mode in [ModeType.mode_1, ModeType.mode_2]:
-            storage_key = get_storage_key(request.mode, request.text, request.header)
-            
-            if storage_key not in suggestion_storage:
-                suggestion_storage[storage_key] = []
-            
-            suggestion_storage[storage_key].append(completion)
-            if len(suggestion_storage[storage_key]) > 5:
-                suggestion_storage[storage_key] = suggestion_storage[storage_key][-5:]
-            
-            suggestion_count = len(suggestion_storage[storage_key])
-        
+        elif request.mode == ModeType.mode_4:
+            mode_logic = Mode4Logic()
+            completion = await mode_logic.process(
+                header=request.header,
+                body=request.body,
+                max_output_length=request.max_output_length
+            )
+        if request.max_output_length and not validate_output_length(completion, request.max_output_length):
+            completion = trim_output(completion, request.max_output_length)
         return AutocompleteResponse(
             completion=completion,
-            mode=request.mode,
-            suggestion_count=suggestion_count
+            mode=request.mode
         )
-        
     except httpx.RequestError as e:
         raise HTTPException(
             status_code=503, 
@@ -122,21 +134,22 @@ async def autocomplete(request: AutocompleteRequest):
             detail=f"Internal server error: {str(e)}"
         )
 
-@router.get("/suggestions/{mode}")
-async def get_suggestions(mode: ModeType, text: str, header: Optional[str] = None):
-    storage_key = get_storage_key(mode, text, header)
-    suggestions = suggestion_storage.get(storage_key, [])
-    
+# Health check endpoint
+@router.get("/health")
+async def health_check():
     return {
-        "mode": mode,
-        "suggestions": suggestions,
-        "count": len(suggestions)
+        "status": "ok", 
+        "modes": {
+            "mode_1": "Context-Aware Regenerative Completion",
+            "mode_2": "Structured Context Enrichment",
+            "mode_3": "Input Refinement",
+            "mode_4": "Payload Description Agent"
+        },
+        "features": {
+            "dynamic_min_input_words": True,
+            "dynamic_max_output_length": True,
+            "on_demand_generation": True,
+            "supports_characters_and_words": True,
+            "mode_specific_validation": True
+        }
     }
-
-@router.delete("/suggestions/{mode}")
-async def clear_suggestions(mode: ModeType, text: str, header: Optional[str] = None):
-    storage_key = get_storage_key(mode, text, header)
-    if storage_key in suggestion_storage:
-        del suggestion_storage[storage_key]
-    
-    return {"message": "Suggestions cleared successfully"}
