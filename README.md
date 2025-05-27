@@ -1,153 +1,235 @@
-# Text Autocompletion Service
+# Multi-Mode Text Enrichment System
 
-A powerful text enrichment and completion service built with FastAPI and Groq LLM. This service provides multiple modes of text enhancement, from context-aware completion to structured enrichment and text refinement.
+## Overview
+
+This project is an advanced, modular text enrichment API and web application. It leverages the Groq LLM API to provide intelligent, on-demand text generation and enrichment across four distinct operational modes. Each mode is tailored for a specific use case, with robust input validation, dynamic parameter support, and a modern, user-friendly frontend.
+
+---
 
 ## Features
 
-The service offers three distinct modes of text enrichment:
+- **Four Enrichment Modes:**  
+  1. **Context-Aware Completion**: Enhance and continue long-form text.
+  2. **Structured Context Enrichment**: Expand on a topic using a header and context.
+  3. **Input Refinement**: Clean up and clarify messy or incomplete input.
+  4. **Payload Description Agent**: Generate natural language descriptions from structured JSON data and a high-level context header.
 
-1. **Context-Aware Completion (Mode 1)**
-   - Intelligently continues text based on given context
-   - Maintains style, tone, and semantics
-   - Generates natural, logical continuations
-   - Supports regeneration for alternative completions
+- **On-Demand Generation:**  
+  Each suggestion is generated fresh from the LLM. No suggestions are stored persistently.
 
-2. **Structured Context Enrichment (Mode 2)**
-   - Enhances text based on provided header/topic context
-   - Maintains topic alignment
-   - Enriches content without introducing irrelevant information
-   - Supports regeneration for alternative enrichments
+- **Dynamic Parameters:**  
+  - Minimum input word count (per mode, can be overridden).
+  - Maximum output length (in words or characters).
 
-3. **Flexible Input Refinement (Mode 3)**
-   - Improves and polishes messy or incomplete text
-   - Maintains original meaning while enhancing clarity
-   - Focuses on grammar, structure, and coherence
-   - Ideal for cleaning up rough drafts or notes
+- **Frontend:**  
+  - Modern, responsive UI.
+  - Mode selector and adaptive input forms.
+  - "Generate Another" for fresh suggestions.
+  - "Use This Suggestion" button for user workflow integration.
+  - Real-time validation and error feedback.
 
-## Prerequisites
+- **Backend:**  
+  - FastAPI-based, modular, and extensible.
+  - Strict input validation per mode.
+  - Clean separation of logic for each mode.
+  - Robust error handling and Groq API integration.
 
-- Python 3.8+
-- Groq API key
-- FastAPI
-- Uvicorn
-- Other dependencies listed in `requirements.txt`
+---
 
-## Installation
+## Table of Contents
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd Text-Autocompletion-Service
-   ```
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the App](#running-the-app)
+- [API Endpoints](#api-endpoints)
+- [Enrichment Modes](#enrichment-modes)
+- [Frontend Usage](#frontend-usage)
+- [Extending the System](#extending-the-system)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Create a `.env` file in the root directory and add your Groq API key:
-   ```
-   GROQ_API_KEY=your_api_key_here
-   ```
-
-## Usage
-
-1. Start the server:
-   ```bash
-   python main.py
-   ```
-   The server will start at `http://localhost:8000`
-
-2. API Endpoints:
-
-   - **Health Check**
-
-     ```http
-     GET /health
-     ```
-
-   - **Text Enrichment**
-
-     ```http
-     POST /autocomplete
-     Content-Type: application/json
-
-     {
-       "text": "Your input text here...",
-       "mode": "mode_1",  // or "mode_2" or "mode_3"
-       "header": "Optional header for mode_2",
-       "regenerate": false,
-       "max_tokens": 50
-     }
-     ```
-
-   - **Get Suggestions**
-
-     ```http
-     GET /suggestions/{mode}?text=your_text&header=optional_header
-     ```
-
-   - **Clear Suggestions**
-
-     ```http
-     DELETE /suggestions/{mode}?text=your_text&header=optional_header
-     ```
-
-## API Parameters
-
-- `text`: Input text to be enriched (minimum 23 words required for modes 1 and 3, minimum 2 words for mode 2)
-- `mode`: Enrichment mode ("mode_1", "mode_2", or "mode_3")
-- `header`: Required for mode_2, provides topic/context
-- `regenerate`: Boolean to generate alternative completions (not supported in mode_3)
-- `max_tokens`: Maximum length of generated text (default: 50)
+---
 
 ## Project Structure
 
 ```
-Text-Autocompletion-Service/
-├── main.py                 # FastAPI application entry point
+Text-Autocompletion-Agent/
 ├── handlers/
-│   └── autocomplete.py     # Request handling and routing
+│   └── autocomplete.py         # FastAPI router for enrichment endpoints
 ├── logic/
-│   ├── mode_1.py          # Context-aware completion logic
-│   ├── mode_2.py          # Structured enrichment logic
-│   └── mode_3.py          # Text refinement logic
+│   ├── mode_1.py               # Context-Aware Completion logic
+│   ├── mode_2.py               # Structured Context Enrichment logic
+│   ├── mode_3.py               # Input Refinement logic
+│   └── mode_4.py               # Payload Description Agent logic
 ├── utils/
-│   ├── generator.py       # Groq LLM API wrapper
-│   └── validator.py       # Text validation utilities
-├── requirements.txt       # Project dependencies
-└── README.md             # This file
+│   ├── generator.py            # Groq LLM API integration and generation utilities
+│   └── validator.py            # Input validation utilities
+├── main.py                     # FastAPI app entry point
+├── index.html                  # Frontend web UI
+├── requirements.txt            # Python dependencies
+├── README.md                   # (This file)
+└── .env                        # Environment variables (not committed)
 ```
 
-## Error Handling
+---
 
-The service includes comprehensive error handling for:
-- Invalid input validation
-- API communication errors
-- Mode-specific requirements
-- Server errors
+## Installation
 
-## Development
+1. **Clone the repository:**
+   ```bash
+   git clone <your-repo-url>
+   cd Text-Autocompletion-Agent
+   ```
 
-To contribute to the project:
+2. **Install Python dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+3. **Set up your environment variables:**
+   - Create a `.env` file in the project root:
+     ```
+     GROQ_API_KEY=your_groq_api_key_here
+     ```
+
+---
+
+## Configuration
+
+- **GROQ_API_KEY**:  
+  Required for backend to communicate with the Groq LLM API.  
+  Obtain your API key from [Groq](https://groq.com/) and set it in `.env`.
+
+---
+
+## Running the App
+
+1. **Start the backend:**
+   ```bash
+   uvicorn main:app --reload
+   ```
+   The API will be available at `http://localhost:8000`.
+
+2. **Open the frontend:**
+   - Open `index.html` in your browser.
+   - Or, serve it with a simple HTTP server:
+     ```bash
+     python -m http.server
+     ```
+     Then visit `http://localhost:8000/index.html` (if served from the same directory).
+
+---
+
+## API Endpoints
+
+### `POST /autocomplete`
+
+- **Description:**  
+  Main endpoint for text enrichment and generation.
+
+- **Request Body (JSON):**
+  - `mode`: `"mode_1"`, `"mode_2"`, `"mode_3"`, or `"mode_4"`
+  - `text`: (string, required for modes 1, 2, 3)
+  - `header`: (string, required for modes 2, 4)
+  - `body`: (object, required for mode 4)
+  - `min_input_words`: (int, optional)
+  - `max_output_length`: (object, optional, e.g. `{ "type": "words", "value": 50 }`)
+
+- **Response:**
+  - `completion`: (string) The generated/enriched text.
+  - `mode`: (string) The mode used.
+
+### `GET /health`
+
+- **Description:**  
+  Returns API health and supported modes/features.
+
+---
+
+## Enrichment Modes
+
+### 1. Context-Aware Completion (`mode_1`)
+- **Purpose:** Enhance and continue long-form user input.
+- **Input:** `text` (min 20 words)
+- **Output:** Enriched version of the input, preserving context.
+
+### 2. Structured Context Enrichment (`mode_2`)
+- **Purpose:** Generate meaningful output from a topic and its context.
+- **Input:** `header` (topic), `text` (context). Combined min 2 words.
+- **Output:** Text elaborating on the topic using the context.
+
+### 3. Input Refinement (`mode_3`)
+- **Purpose:** Clean and refine short, unclear, or messy input.
+- **Input:** `text` (no min word requirement)
+- **Output:** Clearer, more structured version of the input.
+
+### 4. Payload Description Agent (`mode_4`)
+- **Purpose:** Convert structured JSON data into a human-readable description.
+- **Input:** `header` (context), `body` (JSON object). Combined min 2 words.
+- **Output:** One or more natural language descriptions summarizing the payload.
+
+---
+
+## Frontend Usage
+
+- **Mode Selector:**  
+  Choose the enrichment mode at the top of the page.
+
+- **Input Forms:**  
+  Fields adapt based on the selected mode (text, header, body).
+
+- **Dynamic Parameters:**  
+  Set minimum input words and output length (words/characters).
+
+- **Generate/Regenerate:**  
+  - Click "Generate" to get a suggestion.
+  - Click "Generate Another" for a fresh suggestion (no suggestions are stored).
+  - Click "Use This Suggestion" to select a result for your workflow.
+
+- **Validation:**  
+  The UI enforces all input requirements and displays errors if validation fails.
+
+---
+
+## Extending the System
+
+- **Add New Modes:**  
+  - Create a new logic file in `logic/`.
+  - Add mode handling in `handlers/autocomplete.py` and `utils/validator.py`.
+  - Update the frontend to add a new mode button and input fields.
+
+- **Change Model or Parameters:**  
+  - Update `utils/generator.py` to adjust model selection or generation parameters.
+
+- **Customize Validation:**  
+  - Edit `utils/validator.py` for new rules.
+
+---
+
+## Troubleshooting
+
+- **Backend won't start:**  
+  - Check for syntax errors or missing imports.
+  - Ensure `.env` exists and `GROQ_API_KEY` is set.
+
+- **Frontend can't connect:**  
+  - Make sure backend is running at `http://localhost:8000`.
+  - Check browser console and network tab for errors.
+
+- **Groq API errors:**  
+  - Ensure your API key is valid and has quota.
+  - Check backend logs for error details.
+
+- **Validation errors:**  
+  - Ensure you meet the minimum word and required field requirements for each mode.
+
+---
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
-## Acknowledgments
+---
 
-- Built with [FastAPI](https://fastapi.tiangolo.com/)
-- Powered by [Groq LLM](https://groq.com/)
-- Uses [Uvicorn](https://www.uvicorn.org/) as the ASGI server
+**For further help, open an issue or contact the maintainer.**
