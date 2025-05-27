@@ -26,7 +26,7 @@ class ModeType(str, Enum):
     mode_1 = "mode_1"  # Context-Aware Regenerative Completion
     mode_2 = "mode_2"  # Structured Context Enrichment
     mode_3 = "mode_3"  # Input Refinement
-    mode_4 = "mode_4"  # Payload Description Agent
+    mode_4 = "mode_4"  # Description Agent
 
 # Request model for text enrichment
 class AutocompleteRequest(BaseModel):
@@ -55,7 +55,7 @@ async def autocomplete(request: AutocompleteRequest):
             if not request.body:
                 raise HTTPException(
                     status_code=422,
-                    detail="Body is required for Payload Description Agent mode."
+                    detail="Body is required for Description Agent mode."
                 )
             if not validate_combined_word_count(request.header or "", str(request.body), request.mode):
                 raise HTTPException(
@@ -143,7 +143,7 @@ async def health_check():
             "mode_1": "Context-Aware Regenerative Completion",
             "mode_2": "Structured Context Enrichment",
             "mode_3": "Input Refinement",
-            "mode_4": "Payload Description Agent"
+            "mode_4": "Description Agent"
         },
         "features": {
             "dynamic_min_input_words": True,

@@ -9,7 +9,7 @@ class ModeType(str, Enum):
     mode_1 = "mode_1"  # Context-Aware Regenerative Completion
     mode_2 = "mode_2"  # Structured Context Enrichment
     mode_3 = "mode_3"  # Input Refinement
-    mode_4 = "mode_4"  # Payload Description Agent
+    mode_4 = "mode_4"  # Description Agent
 
 def count_words(text: str) -> int:
     """Count words in text using regex to match word boundaries."""
@@ -30,7 +30,7 @@ def get_default_min_words(mode: ModeType) -> int:
         ModeType.mode_1: 20,
         ModeType.mode_2: 2,
         ModeType.mode_3: 0,
-        ModeType.mode_4: 2  # Payload Description Agent: 2 words min
+        ModeType.mode_4: 2  # Description Agent: 2 words min
     }
     return defaults.get(mode, 0)
 

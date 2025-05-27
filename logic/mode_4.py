@@ -1,4 +1,4 @@
-# Mode 4: Payload Description Agent
+# Mode 4: Description Agent
 # Generates natural language descriptions from a header and structured JSON body.
 
 from typing import Dict, Any, Optional, Union
