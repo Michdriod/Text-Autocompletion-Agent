@@ -1,10 +1,17 @@
-fastapi==0.104.1
-uvicorn==0.23.2
-httpx==0.25.1
-python-dotenv==1.0.0
-pydantic==2.4.2
-flask
-langchain_community
-langchain[groq]
-sentence-transformers==2.2.2
-langchain
+# Core FastAPI dependencies
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+httpx==0.28.1
+python-dotenv==1.0.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# Testing dependencies
+pytest==8.3.3
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+
+# Development dependencies (optional)
+black==24.10.0
+flake8==7.1.1
+mypy==1.13.0

@@ -4,13 +4,13 @@
 # relevance and coherence. Supports dynamic output length control.
 
 from typing import Optional, Dict, Union
-from utils.generator import GroqGenerator
+from utils.generator import get_generator
 from utils.validator import calculate_max_tokens
 
 class Mode2Logic:
     def __init__(self):
-        # Initialize the Groq LLM generator for text enrichment
-        self.generator = GroqGenerator()
+        # Use singleton generator for better performance
+        self.generator = get_generator()
     
     def get_system_prompt(self) -> str:
         return (

@@ -95,15 +95,42 @@ def calculate_max_tokens(max_output_length: Optional[Dict[str, Union[str, int]]]
     """Calculate appropriate max_tokens for API call based on output length requirements."""
     if not max_output_length:
         return 300  # Default max tokens
-    
+
     length_type = max_output_length.get("type")
     length_value = max_output_length.get("value", 200)
-    
+
+    # Validate length_value is positive
+    if not isinstance(length_value, (int, float)) or length_value <= 0:
+        return 300
+
     if length_type == "characters":
         # Rough estimate: 1 token ≈ 3-4 characters
-        return min(int(length_value / 3) + 50, 500)  # Add buffer and cap at 500
+        return min(max(int(length_value / 3) + 50, 50), 1000)  # Min 50, max 1000
     elif length_type == "words":
         # Rough estimate: 1 token ≈ 0.75 words
-        return min(int(length_value / 0.75) + 50, 500)  # Add buffer and cap at 500
-    
+        return min(max(int(length_value / 0.75) + 50, 50), 1000)  # Min 50, max 1000
+
     return 300  # Default fallback
+
+def validate_json_input(json_str: str) -> bool:
+    """Validate that a string is valid JSON."""
+    try:
+        import json
+        json.loads(json_str)
+        return True
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+def sanitize_text_input(text: str, max_length: int = 10000) -> str:
+    """Sanitize text input by removing excessive whitespace and limiting length."""
+    if not text:
+        return ""
+
+    # Remove excessive whitespace
+    text = " ".join(text.split())
+
+    # Limit length
+    if len(text) > max_length:
+        text = text[:max_length].rstrip()
+
+    return text

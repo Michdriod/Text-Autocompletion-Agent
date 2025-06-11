@@ -134,11 +134,44 @@ async def autocomplete(request: AutocompleteRequest):
             detail=f"Internal server error: {str(e)}"
         )
 
-# Health check endpoint
+# Enhanced health check endpoint
 @router.get("/health")
 async def health_check():
+    from utils.generator import get_generator
+    from utils.cache import get_cache
+    from utils.metrics import get_metrics_collector
+    from config import get_config
+    import time
+
+    config = get_config()
+    start_time = time.time()
+
+    # Test Groq API connectivity
+    try:
+        generator = get_generator()
+        api_healthy = await generator.health_check()
+    except Exception as e:
+        api_healthy = False
+
+    # Get cache stats
+    cache = get_cache()
+    cache_stats = cache.get_stats()
+
+    # Get metrics summary
+    metrics = get_metrics_collector()
+    metrics_summary = metrics.get_summary_stats(time_window=300)  # Last 5 minutes
+
+    health_check_time = time.time() - start_time
+
     return {
-        "status": "ok", 
+        "status": "healthy" if api_healthy else "degraded",
+        "timestamp": time.time(),
+        "health_check_duration": health_check_time,
+        "services": {
+            "groq_api": "healthy" if api_healthy else "unhealthy",
+            "cache": "healthy",
+            "metrics": "healthy"
+        },
         "modes": {
             "mode_1": "Context-Aware Regenerative Completion",
             "mode_2": "Structured Context Enrichment",
@@ -150,6 +183,16 @@ async def health_check():
             "dynamic_max_output_length": True,
             "on_demand_generation": True,
             "supports_characters_and_words": True,
-            "mode_specific_validation": True
+            "mode_specific_validation": True,
+            "caching": config.cache_enabled,
+            "performance_monitoring": True
+        },
+        "cache_stats": cache_stats,
+        "recent_metrics": metrics_summary,
+        "configuration": {
+            "cache_enabled": config.cache_enabled,
+            "cache_ttl": config.cache_ttl,
+            "max_input_length": config.max_input_length,
+            "max_output_tokens": config.max_output_tokens
         }
     }

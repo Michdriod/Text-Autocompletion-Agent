@@ -8,6 +8,7 @@ import asyncio
 from typing import Optional, Dict, Any
 import json
 import logging
+from .cache import get_cache
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,15 +20,17 @@ class GroqGenerator:
     Handles API communication, error handling, and response processing.
     """
     
-    def __init__(self):
+    def __init__(self, enable_cache: bool = True):
         self.api_key = os.getenv("GROQ_API_KEY")
         if not self.api_key:
             raise ValueError("GROQ_API_KEY environment variable not set")
-        
+
         self.base_url = "https://api.groq.com/openai/v1/chat/completions"
         self.model = "llama-3.3-70b-versatile"  # Default model
         self.timeout = 30.0  # Request timeout in seconds
         self.max_retries = 3  # Maximum retry attempts
+        self.enable_cache = enable_cache
+        self.cache = get_cache() if enable_cache else None
         
         # Default generation parameters
         self.default_params = {
@@ -72,9 +75,23 @@ class GroqGenerator:
         temperature: float = None,
         top_p: float = None,
         max_tokens: int = None,
-        model: str = None
+        model: str = None,
+        use_cache: bool = True
     ) -> str:
-        
+
+        # Check cache first if enabled
+        if self.enable_cache and use_cache and self.cache:
+            cache_key_params = {
+                "temperature": temperature,
+                "top_p": top_p,
+                "max_tokens": max_tokens,
+                "model": model or self.model
+            }
+            cached_result = self.cache.get(system_prompt, user_message, **cache_key_params)
+            if cached_result:
+                logger.info("Returning cached result")
+                return cached_result
+
         # Get model-specific parameters
         model_name = model or self.model
         model_config = self.model_configs.get(model_name, {})
@@ -159,7 +176,17 @@ class GroqGenerator:
                     
                     if not generated_text:
                         raise ValueError("Empty response from Groq API")
-                    
+
+                    # Cache the result if caching is enabled
+                    if self.enable_cache and use_cache and self.cache:
+                        cache_key_params = {
+                            "temperature": params.get("temperature"),
+                            "top_p": params.get("top_p"),
+                            "max_tokens": params.get("max_tokens"),
+                            "model": model_name
+                        }
+                        self.cache.set(system_prompt, user_message, generated_text, **cache_key_params)
+
                     logger.info(f"Successfully generated text completion using model {model_name}")
                     return generated_text
                     

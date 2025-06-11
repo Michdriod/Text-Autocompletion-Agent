@@ -2,13 +2,14 @@
 # Generates natural language descriptions from a header and structured JSON body.
 
 from typing import Dict, Any, Optional, Union
-from utils.generator import GroqGenerator
+from utils.generator import get_generator
 from utils.validator import calculate_max_tokens
 import json
 
 class Mode4Logic:
     def __init__(self):
-        self.generator = GroqGenerator()
+        # Use singleton generator for better performance
+        self.generator = get_generator()
     
     def get_system_prompt(self) -> str:
         return (

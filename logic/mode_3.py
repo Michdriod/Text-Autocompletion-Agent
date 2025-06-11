@@ -4,12 +4,13 @@
 # No minimum word requirement, suitable for polishing notes or broken thoughts.
 
 from typing import Optional, Dict, Union
-from utils.generator import GroqGenerator
+from utils.generator import get_generator
 from utils.validator import calculate_max_tokens
 
 class Mode3Logic:
     def __init__(self):
-        self.generator = GroqGenerator()
+        # Use singleton generator for better performance
+        self.generator = get_generator()
     
     def get_system_prompt(self) -> str:
         return (
