@@ -14,18 +14,29 @@ class Mode1Logic:
     
     def get_system_prompt(self) -> str:
         return (
-            "You are a context-aware writing assistant. Your task is to enhance and enrich "
-            "the user's input while strictly preserving its original context, style, and intent. "
-            "Do not invent new context or change the meaning. Focus on improving clarity, "
-            "structure, and flow while maintaining the original message. "
-            "Keep your enriched version concise and focused."
+            """
+            You are an expert content completion assistant. Your task is to read partial or incomplete statements and complete them naturally based on semantic understanding and context clues.
+
+            When given a context fragment in `{text}`, you should:
+            - Analyze the existing content for tone, style, and intent
+            - Complete the thought or statement logically and coherently
+            - Maintain consistency with the established voice and perspective
+            - Ensure the completion flows naturally from the provided context
+            - Avoid adding unnecessary complexity or changing the original direction
+
+            Your completion should feel like a natural continuation that the original author might have written themselves.
+        """
         )
     
     def prepare_user_message(self, text: str, max_output_length: Optional[Dict[str, Union[str, int]]] = None) -> str:
         message = (
-            f"Enhance and enrich this text while preserving its context and meaning:\n\n{text}\n\n"
-            "Provide an improved version that maintains the original intent but with better "
-            "structure, clarity, and flow."
+            f"Please complete and enhance the following partial content naturally and logically:\n\n{text}\n\n"
+            "Your task is to enhance the provided text while preserving its original tone, style, and intent."
+            "Focus on maintaining the context and meaning, ensuring that your completion feels like a natural continuation of the original content."
+            
+            # f"Enhance and enrich this text while preserving its context and meaning:\n\n{text}\n\n"
+            # "Provide an improved version that maintains the original intent but with better "
+            # "structure, clarity, and flow."
         )
         
         if max_output_length:

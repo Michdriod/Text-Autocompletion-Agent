@@ -414,6 +414,7 @@
         <div class="button-group">
             <button class="btn btn-primary" id="generate-btn">Generate Enrichment</button>
             <button class="btn btn-secondary" id="regenerate-btn" style="display: none;">Generate Alternative</button>
+            <button class="btn btn-secondary" id="clear-results-btn">Clear Results</button>
         </div>
         
         <!-- Loading State -->
@@ -486,6 +487,7 @@
         const maxLengthValue = document.getElementById('max-length-value');
         const generateBtn = document.getElementById('generate-btn');
         const regenerateBtn = document.getElementById('regenerate-btn');
+        const clearResultsBtn = document.getElementById('clear-results-btn');
         const loading = document.getElementById('loading');
         const error = document.getElementById('error');
         const resultsSection = document.getElementById('results-section');
@@ -589,6 +591,15 @@
             });
         });
         
+        // Clear results button handler
+        document.getElementById('clear-results-btn').addEventListener('click', () => {
+            resultsContainer.innerHTML = '';
+            resultsSection.style.display = 'none';
+            regenerateBtn.style.display = 'none';
+            lastRequest = null;
+        });
+
+        // Function to update UI for mode
         function updateUIForMode() {
             const config = modeConfigs[currentMode];
             
@@ -633,6 +644,14 @@
         // Regenerate button handler
         regenerateBtn.addEventListener('click', async () => {
             await generateCompletion(true);
+        });
+        
+        // Clear results button handler
+        clearResultsBtn.addEventListener('click', () => {
+            resultsContainer.innerHTML = '';
+            resultsSection.style.display = 'none';
+            regenerateBtn.style.display = 'none';
+            lastRequest = null;
         });
         
         async function generateCompletion(isRegeneration = false) {

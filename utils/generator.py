@@ -40,25 +40,25 @@ class GroqGenerator:
         # Model-specific configurations
         self.model_configs = {
             "llama3-8b-8192": {
-                "max_tokens": 8192,
+                "max_tokens": 300,
                 "temperature": 0.3,
                 "top_p": 0.9,
                 "description": "Fast 8B parameter model with 8K context window"
             },
             "llama3-70b-8192": {
-                "max_tokens": 8192,
+                "max_tokens": 300,
                 "temperature": 0.3,
                 "top_p": 0.9,
                 "description": "Powerful 70B parameter model with 8K context window"
             },
             "llama-3.1-8b-instant": {
-                "max_tokens": 2048,
+                "max_tokens": 300,
                 "temperature": 0.3,
                 "top_p": 0.9,
                 "description": "Quick 8B parameter model optimized for instant responses"
             },
             "llama-3.3-70b-versatile": {
-                "max_tokens": 4096,
+                "max_tokens": 300,
                 "temperature": 0.3,
                 "top_p": 0.9,
                 "description": "Versatile 70B parameter model with balanced performance"
@@ -92,7 +92,7 @@ class GroqGenerator:
         if top_p is not None:
             params["top_p"] = max(0.0, min(1.0, top_p))
         if max_tokens is not None:
-            params["max_tokens"] = max(1, min(model_config.get("max_tokens", 4000), max_tokens))
+            params["max_tokens"] = max(1, min(model_config.get("max_tokens", 300), max_tokens))
         
         # Prepare messages
         messages = [
@@ -269,7 +269,7 @@ class GroqGenerator:
             test_result = await self.generate(
                 system_prompt="You are a helpful assistant.",
                 user_message="Say 'OK' if you can hear me.",
-                max_tokens=10,
+                max_tokens=300,
                 temperature=0.1
             )
             return "OK" in test_result.upper()
@@ -326,7 +326,7 @@ class GroqGenerator:
             self.default_params["top_p"] = max(0.0, min(1.0, top_p))
         
         if max_tokens is not None:
-            self.default_params["max_tokens"] = max(1, min(4000, max_tokens))
+            self.default_params["max_tokens"] = max(1, min(100, max_tokens))
         
         if timeout is not None:
             self.timeout = max(5.0, timeout)
@@ -351,7 +351,7 @@ def get_generator() -> GroqGenerator:
 
 
 # Convenience functions for common use cases
-async def quick_generate(prompt: str, max_tokens: int = 200, temperature: float = 0.3) -> str:
+async def quick_generate(prompt: str, max_tokens: int = 100, temperature: float = 0.3) -> str:
     """
     Quick text generation with minimal setup.
     
@@ -395,7 +395,7 @@ async def creative_generate(prompt: str, max_tokens: int = 300) -> str:
     )
 
 
-async def technical_generate(prompt: str, max_tokens: int = 400) -> str:
+async def technical_generate(prompt: str, max_tokens: int = 300) -> str:
     """
     Technical text generation with lower temperature for accuracy.
     

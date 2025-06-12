@@ -2,9 +2,7 @@ fastapi==0.104.1
 uvicorn==0.23.2
 httpx==0.25.1
 python-dotenv==1.0.0
-pydantic==2.4.2
-flask
-langchain_community
+# pydantic==2.4.2
 langchain[groq]
-sentence-transformers==2.2.2
-langchain
+pydantic-settings==2.6.1
+pydantic>=2.7.0

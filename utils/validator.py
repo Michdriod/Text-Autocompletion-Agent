@@ -94,16 +94,16 @@ def trim_output(text: str, max_length: Dict[str, Union[str, int]]) -> str:
 def calculate_max_tokens(max_output_length: Optional[Dict[str, Union[str, int]]] = None) -> int:
     """Calculate appropriate max_tokens for API call based on output length requirements."""
     if not max_output_length:
-        return 300  # Default max tokens
+        return 100  # Default min tokens
     
     length_type = max_output_length.get("type")
     length_value = max_output_length.get("value", 200)
     
     if length_type == "characters":
         # Rough estimate: 1 token ≈ 3-4 characters
-        return min(int(length_value / 3) + 50, 500)  # Add buffer and cap at 500
+        return max(100, min(int(length_value / 3) + 50, 300))  # Buffer, min 100, max 300
     elif length_type == "words":
         # Rough estimate: 1 token ≈ 0.75 words
-        return min(int(length_value / 0.75) + 50, 500)  # Add buffer and cap at 500
+        return max(100, min(int(length_value / 0.75) + 50, 300))  # Buffer, min 100, max 300
     
-    return 300  # Default fallback
+    return 100  # Default fallback (min)
