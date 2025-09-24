@@ -85,7 +85,7 @@ class Mode4Logic:
 
             Transaction types: Payment, Transfer, Purchase, Deposit, Transaction
             Connectors: to, from, at, with
-            Purpose words: for, regarding, related to
+            Purpose words: for, regarding, related to, as a
 
             Now analyze the provided transaction and generate a natural description following this process.
             """
