@@ -24,6 +24,8 @@ class Mode5:
     FINAL_USER_PROMPT_TEMPLATE = (
         "Refine the following text into a coherent, well-structured Markdown summary of about {target_words} words (20% of the original). "
         "Do not exceed the target by more than 5%. If the text is already concise, focus on improving clarity and flow.\n\n"
+        "If you reach the end of your allowed output, ensure your summary is complete and ends with a proper conclusion, even if you must be more concise.\n\n"
+        "If you encounter tabular data, format it as a Markdown table using pipes (|) and dashes (-) so it renders correctly.\n\n"
         "---\n\n"
         "{draft}"
     )

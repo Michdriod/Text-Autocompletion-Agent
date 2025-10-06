@@ -16,10 +16,10 @@ FINAL_SUMMARY_RATIO_DEFAULT: float = 0.20    # Final target ratio vs original fu
 
 # File handling limits
 MAX_FILE_MB: int = 10               # Reject files larger than this size (MB)
-MAX_FINAL_WORDS: int = 2000         # Safety cap for final summary length
+MAX_FINAL_WORDS: int = 3000         # Safety cap for final summary length
 
 # Future tuning constants (placeholders for later stages)
-FINAL_REFINEMENT_MAX_TOKENS: int = 1800      # Max tokens budget for final refinement pass (planner will clamp)
+FINAL_REFINEMENT_MAX_TOKENS: int = 4000      # Max tokens budget for final refinement pass (planner will clamp)
 CHUNK_SUMMARY_MAX_TOKENS: int = 600          # Max tokens budget per chunk summarization call
 
 # Validation thresholds

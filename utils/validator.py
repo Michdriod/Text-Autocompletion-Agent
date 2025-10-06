@@ -81,6 +81,13 @@ def calculate_max_tokens(max_output_length: Optional[Dict[str, Union[str, int]]]
     # Clamp absurd user values
     length_value = max(20, min(length_value, 20000))
 
+    # if length_type == "characters":
+    #     # ≈4 chars per token -> character target / 4, add 20% buffer
+    #     est = int(max(1, length_value // 4) * 1.2)
+    # else:  # words
+    #     # ≈0.75 words per token -> words / 0.75, add 20% buffer
+    #     est = int((length_value / 0.75) * 1.2)
+        
     if length_type == "characters":
         # ≈4 chars per token -> character target / 4
         est = max(1, length_value // 4)
