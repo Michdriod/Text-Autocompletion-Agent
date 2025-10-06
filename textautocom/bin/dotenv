@@ -1,4 +1,4 @@
-#!/Users/mac/Text-Autocompletion-Agent/textautocom/bin/python3.12
+#!/Users/mac/Text-Autocompletion-Agent/textautocom/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

@@ -2,14 +2,15 @@
 # Generates natural language descriptions from a header and structured JSON body.
 
 from typing import Dict, Any, Optional, Union
-from utils.generator import GroqGenerator
-from utils.validator import calculate_max_tokens
+from utils.generator import generate
+from utils.validator import build_length_instruction, plan_output_length
 import json
+class Mode4:
+    """
+    Description Agent
+    Generates natural language descriptions from a header and structured JSON body.
+    """
 
-class Mode4Logic:
-    def __init__(self):
-        self.generator = GroqGenerator()
-    
     def get_system_prompt(self) -> str:
         return (
             """
@@ -150,11 +151,11 @@ class Mode4Logic:
             "Generate a clear, natural-sounding description that appropriately interprets and presents the structured data."
             "Descriptions should be clear, concise, and appropriate to the header context."
         )
-        if max_output_length:
-            length_type = max_output_length.get("type", "characters")
-            length_value = max_output_length.get("value", 200)
-            message += f"\n\nIMPORTANT: Keep your description(s) to a maximum of {length_value} {length_type}."
-        return message
+        # if max_output_length:
+        #     length_type = max_output_length.get("type", "characters")
+        #     length_value = max_output_length.get("value", 200)
+        #     message += f"\n\nIMPORTANT: Keep your description(s) to a maximum of {length_value} {length_type}."
+        return message + build_length_instruction(max_output_length)
     
     def get_generation_parameters(self) -> dict:
         return {"temperature": 0.2, "top_p": 0.95}
@@ -166,10 +167,12 @@ class Mode4Logic:
         max_output_length: Optional[Dict[str, Union[str, int]]] = None
     ) -> str:
         system_prompt = self.get_system_prompt()
-        user_message = self.prepare_user_message(header, body, max_output_length)
         gen_params = self.get_generation_parameters()
-        max_tokens = calculate_max_tokens(max_output_length)
-        completion = await self.generator.generate(
+        plan = plan_output_length("mode_4", max_output_length, body=body)
+        length_instruction_target = max_output_length or plan["constraint"]
+        user_message = self.prepare_user_message(header, body, length_instruction_target)
+        max_tokens = plan["token_budget"]
+        completion = await generate(
             system_prompt=system_prompt,
             user_message=user_message,
             max_tokens=max_tokens,

@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import os
 
 from handlers.autocomplete import router as autocomplete_router
+from handlers.summarize_document import router as summarize_document_router
 
 # Load environment variables from .env file
 load_dotenv()
@@ -34,8 +35,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include the autocomplete router which handles all text enrichment endpoints
+
+# Include the autocomplete router and summarize document router
 app.include_router(autocomplete_router)
+app.include_router(summarize_document_router)
 
 @app.get("/")
 async def root():
@@ -68,6 +71,15 @@ async def root():
                 "id": "mode_4",
                 "name": "Description Generator",
                 "description": "Generate descriptions from structured data"
+            },
+            {
+                "id": "mode_5",
+                "name": "Document Summarization",
+                "description": "Generate summary from structured data"
+            },{
+                "id": "mode_6",
+                "name": "Document Development",
+                "description": "Develop documents from user input"
             }
         ],
         "features": [

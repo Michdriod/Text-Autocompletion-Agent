@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Mode Text Enrichment System - Dynamic Parameters</title>
+    <!-- Markdown renderer -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -237,7 +239,15 @@
             font-size: 16px;
             line-height: 1.6;
             color: #333;
+            white-space: pre-wrap; /* Preserve line breaks and spacing from model output */
         }
+        .result-content.formatted { white-space: normal; }
+        .result-content .doc-title { font-size: 1.15em; font-weight: 600; margin-bottom: 8px; }
+        .result-content .doc-heading { font-size: 0.95em; font-weight: 600; margin-top: 20px; letter-spacing: .5px; }
+        .result-content ul, .result-content ol { margin: 8px 0 16px 24px; padding: 0; }
+        .result-content li { margin: 2px 0; }
+        .result-content .kpi-block { background:#f1f5f4; padding:10px 14px; border-left:4px solid #4CAF50; border-radius:6px; margin:12px 0; }
+        .format-toggle { background:#f0f0f0; border:1px solid #d4d4d4; padding:4px 10px; border-radius:6px; font-size:12px; cursor:pointer; margin-top:8px; }
         
         /* Loading States */
         .loading {
@@ -336,7 +346,7 @@
     </style>
 </head>
 <body>
-    <h1>Multi-Mode Text Enrichment System</h1>
+    <h1>Multi-Type Text Enrichment System</h1>
     
     <div class="main-container">
         <!-- Mode Selection -->
@@ -344,7 +354,9 @@
             <button class="mode-btn active" data-mode="mode_1">Context-Aware Completion</button>
             <button class="mode-btn" data-mode="mode_2">Structured Context Enrichment</button>
             <button class="mode-btn" data-mode="mode_3">Flexible Input Refinement</button>
-            <button class="mode-btn" data-mode="mode_4">Description Agent</button>
+            <button class="mode-btn" data-mode="mode_4">Description Generation</button>
+            <button class="mode-btn" data-mode="mode_5">Document Summarization</button>
+            <button class="mode-btn" data-mode="mode_6">Document Development</button>
         </div>
         
         <!-- Mode Descriptions -->
@@ -360,6 +372,12 @@
         <div class="mode-description" id="desc-mode_4">
             <strong>Description Agent:</strong> Generates one or more natural language descriptions from a high-level context (header) and a structured JSON body. Useful for summarizing or describing structured data (e.g., transaction details).
         </div>
+        <div class="mode-description" id="desc-mode_5">
+            <strong>Document Summarization:</strong> Analyzes and distills long-form content into concise, clear, and logically structured summaries. Perfect for quickly understanding the key points of a document.
+        </div>
+        <div class="mode-description" id="desc-mode_6">
+            <strong>Document Development:</strong> Creates comprehensive and well-structured documents based on a topic (header) and detailed description (body). Ideal for generating business proposals, technical guides, or creative stories.
+        </div>
         
         <!-- Input Section -->
         <div class="input-section">
@@ -369,31 +387,43 @@
                 <textarea id="text-input" placeholder="Enter your text here..."></textarea>
                 <div class="counter" id="text-counter">0 words, 0 characters</div>
             </div>
+
+            <!-- File Upload for Mode 5 (Document Summarization) -->
+            <div class="input-group" id="file-upload-group" style="display: none;">
+                <label for="file-upload">Upload Document (PDF, DOCX, TXT):</label>
+                <input type="file" id="file-upload" accept=".pdf,.docx,.txt" />
+                <div style="font-size:12px;color:#555;margin-top:5px;">Max 10MB. Only PDF, DOCX, or TXT files are supported.</div>
+            </div>
             
-            <!-- Header Input (for modes 2, 4) -->
+            <!-- Header Input (for modes 2, 4, 6) -->
             <div class="input-group" id="header-input-group" style="display: none;">
                 <label for="header-input">Header/Topic Context:</label>
                 <input type="text" id="header-input" placeholder="Enter topic or context header...">
                 <div class="counter" id="header-counter">0 words, 0 characters</div>
             </div>
             
-            <!-- Body Input (for mode 4) -->
+            <!-- Body Input (for mode 4)
             <div class="input-group" id="body-input-group" style="display: none;">
                 <label for="body-input">Body (JSON):</label>
                 <textarea id="body-input" placeholder='{"amount": 100, "currency": "USD", "merchant": "Store"}'></textarea>
+            </div> -->
+
+            <!-- Body Input (for modes 4, 6) -->
+            <div class="input-group" id="body-input-group" style="display: none;">
+                <label for="body-input">Body (Description or JSON):</label>
+                <textarea id="body-input" placeholder="Enter detailed description or JSON data here..."></textarea>
+                <div class="counter" id="body-counter">0 words, 0 characters</div>
             </div>
         </div>
         
-        <!-- Dynamic Parameters Section -->
-        <div class="parameters-section">
+        <!-- Dynamic Parameters Section (hidden for Mode 5) -->
+        <div class="parameters-section" id="parameters-section">
             <div class="parameters-header">Dynamic Parameters</div>
-            
             <div class="parameter-row">
                 <div class="parameter-group">
                     <label for="min-words">Minimum Input Words:</label>
                     <input type="number" id="min-words" min="1" max="100" placeholder="Auto">
                 </div>
-                
                 <div class="parameter-group">
                     <label for="max-length-type">Output Length Type:</label>
                     <select id="max-length-type">
@@ -402,12 +432,12 @@
                         <option value="words">Words</option>
                     </select>
                 </div>
-                
                 <div class="parameter-group">
                     <label for="max-length-value">Max Length Value:</label>
                     <input type="number" id="max-length-value" min="1" max="2000" placeholder="200" disabled>
                 </div>
             </div>
+            <div id="length-hint" style="font-size:12px;color:#555;display:none;margin-top:-5px;margin-bottom:5px;"></div>
         </div>
         
         <!-- Action Buttons -->
@@ -420,7 +450,7 @@
         <!-- Loading State -->
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <div>Generating enriched content...</div>
+            <div id="loading-message">Generating enriched content...</div>
         </div>
         
         <!-- Error Display -->
@@ -438,6 +468,46 @@
         let currentMode = 'mode_1';
         let lastRequest = null;
         const API_BASE = 'http://localhost:8000'; // Update this to your backend URL
+
+        // Per-mode action labels for buttons & loading states
+        const modeActionLabels = {
+            mode_1: {
+                primary: 'Continue Writing',
+                regenerate: 'Try Another Continuation',
+                loading: 'Generating continuation...',
+                use: 'Use This Continuation'
+            },
+            mode_2: {
+                primary: 'Enrich Content',
+                regenerate: 'Generate Alternative Enrichment',
+                loading: 'Enriching content...',
+                use: 'Use This Enrichment'
+            },
+            mode_3: {
+                primary: 'Refine Text',
+                regenerate: 'Refine Again', // (Regenerate disabled by config but kept for consistency)
+                loading: 'Refining text...',
+                use: 'Use This Refinement'
+            },
+            mode_4: {
+                primary: 'Generate Description',
+                regenerate: 'Generate Alternative Description',
+                loading: 'Generating description...',
+                use: 'Use This Description'
+            },
+            mode_5: {
+                primary: 'Summarize Document',
+                regenerate: 'Generate Alternative Summary',
+                loading: 'Summarizing document...',
+                use: 'Use This Summary'
+            },
+            mode_6: {
+                primary: 'Develop Document',
+                regenerate: 'Generate Alternative Draft',
+                loading: 'Developing document...',
+                use: 'Use This Draft'
+            }
+        };
         
         // Mode configurations
         const modeConfigs = {
@@ -468,6 +538,20 @@
                 requiresBody: true,
                 supportsRegenerate: true,
                 defaultMinWords: 2
+            },
+            mode_5: {
+                requiresText: true,
+                requiresHeader: false,
+                requiresBody: false,
+                supportsRegenerate: true,
+                defaultMinWords: 20
+            },
+            mode_6: {
+                requiresText: false,
+                requiresHeader: true,
+                requiresBody: true,
+                supportsRegenerate: true,
+                defaultMinWords: 2
             }
         };
         
@@ -482,11 +566,14 @@
         const bodyInput = document.getElementById('body-input');
         const textCounter = document.getElementById('text-counter');
         const headerCounter = document.getElementById('header-counter');
+        const bodyCounter = document.getElementById('body-counter');
         const minWordsInput = document.getElementById('min-words');
         const maxLengthType = document.getElementById('max-length-type');
         const maxLengthValue = document.getElementById('max-length-value');
+        const parametersSection = document.getElementById('parameters-section');
         const generateBtn = document.getElementById('generate-btn');
         const regenerateBtn = document.getElementById('regenerate-btn');
+        const loadingMessage = document.getElementById('loading-message');
         const clearResultsBtn = document.getElementById('clear-results-btn');
         const loading = document.getElementById('loading');
         const error = document.getElementById('error');
@@ -538,18 +625,55 @@
             
             const contentDiv = document.createElement('div');
             contentDiv.className = 'result-content';
-            contentDiv.textContent = content;
+            let formattedHtml = '';
+            if (mode === 'mode_5' && window.marked) {
+                // Render markdown as HTML for Mode 5
+                formattedHtml = marked.parse(content || '');
+                contentDiv.classList.add('formatted');
+                contentDiv.innerHTML = formattedHtml;
+            } else {
+                formattedHtml = formatStructured(content);
+                if(formattedHtml){
+                    contentDiv.classList.add('formatted');
+                    contentDiv.innerHTML = formattedHtml;
+                } else {
+                    contentDiv.textContent = content;
+                }
+            }
+
+            // Toggle button for raw / formatted view
+            const toggleBtn = document.createElement('button');
+            toggleBtn.textContent = 'Toggle Raw/Formatted';
+            toggleBtn.className = 'format-toggle';
+            let showingFormatted = true;
+            toggleBtn.onclick = () => {
+                if(showingFormatted){
+                    contentDiv.classList.remove('formatted');
+                    contentDiv.textContent = content; // raw
+                } else {
+                    if (mode === 'mode_5' && window.marked) {
+                        contentDiv.classList.add('formatted');
+                        contentDiv.innerHTML = marked.parse(content || '');
+                    } else {
+                        contentDiv.classList.add('formatted');
+                        contentDiv.innerHTML = formattedHtml;
+                    }
+                }
+                showingFormatted = !showingFormatted;
+            };
             
             // Add "Use This Suggestion" button
             const useBtn = document.createElement('button');
             useBtn.className = 'btn btn-secondary';
-            useBtn.textContent = 'Use This Suggestion';
+            const labelCfg = modeActionLabels[mode] || { use: 'Use This Result' };
+            useBtn.textContent = labelCfg.use;
             useBtn.onclick = () => {
                 alert('Suggestion selected! You can now use this text elsewhere.');
             };
             
             resultItem.appendChild(meta);
             resultItem.appendChild(contentDiv);
+            resultItem.appendChild(toggleBtn);
             resultItem.appendChild(useBtn);
             
             if (isRegeneration) {
@@ -559,6 +683,83 @@
             }
             
             resultsSection.style.display = 'block';
+        }
+
+        function escapeHtml(str){
+            return str
+                .replace(/&/g,'&amp;')
+                .replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;')
+                .replace(/"/g,'&quot;')
+                .replace(/'/g,'&#39;');
+        }
+
+        // Attempt to structure professional doc outputs (esp. Mode 6)
+        function formatStructured(raw){
+            if(!raw || raw.length < 40) return '';
+            const lines = raw.split(/\n+/).map(l=>l.trim()).filter(l=>l.length>0);
+            if(lines.length < 3) return '';
+            const headingSet = new Set([
+                'EXECUTIVE SUMMARY','INTRODUCTION','OBJECTIVES','GOALS','STRATEGY','IMPLEMENTATION PLAN',
+                'KPIS & MEASUREMENT','RISKS & MITIGATION','RESOURCE & BUDGET','TIMELINE','CONCLUSION'
+            ]);
+            // Heuristic: first line that is not all-caps heading is title
+            let idx=0; let title='';
+            if(lines[0] && !headingSet.has(lines[0].toUpperCase())){
+                title = lines[0]; idx=1;
+            }
+            const blocks=[]; let current=null;
+            function pushCurrent(){ if(current){ blocks.push(current); current=null; } }
+            for(let i=idx;i<lines.length;i++){
+                const ln = lines[i];
+                const up = ln.toUpperCase();
+                if(headingSet.has(up)){
+                    pushCurrent();
+                    current = { heading: up, lines: [] };
+                } else {
+                    if(!current){ current = { heading: null, lines: [] }; }
+                    current.lines.push(ln);
+                }
+            }
+            pushCurrent();
+            if(blocks.length === 0) return '';
+            // Build HTML
+            let html='';
+            if(title) html += `<div class="doc-title">${escapeHtml(title)}</div>`;
+            for(const b of blocks){
+                if(b.heading){
+                    html += `<div class="doc-heading">${escapeHtml(b.heading)}</div>`;
+                }
+                // Attempt list grouping
+                const paragraphBuffer=[]; let listBuffer=[]; let listType=null; function flushList(){ if(listBuffer.length){ html += listType==='ol'?'<ol>':'<ul>'; listBuffer.forEach(li=> html += `<li>${escapeHtml(li)}</li>`); html += listType==='ol'?'</ol>':'</ul>'; listBuffer=[]; listType=null; } }
+                for(const line of b.lines){
+                    const numMatch = line.match(/^([0-9]{1,2})\.\s+(.*)$/);
+                    const bulletMatch = line.match(/^[-•*]\s+(.*)$/);
+                    if(numMatch){
+                        if(listType && listType!=='ol') flushList();
+                        listType='ol';
+                        listBuffer.push(numMatch[2]);
+                    } else if(bulletMatch){
+                        if(listType && listType!=='ul') flushList();
+                        listType='ul';
+                        listBuffer.push(bulletMatch[1]);
+                    } else {
+                        flushList();
+                        paragraphBuffer.push(line);
+                    }
+                }
+                flushList();
+                if(paragraphBuffer.length){
+                    paragraphBuffer.forEach(p=>{
+                        if(b.heading && b.heading.includes('KPI')){
+                            html += `<div class="kpi-block">${escapeHtml(p)}</div>`;
+                        } else {
+                            html += `<p>${escapeHtml(p)}</p>`;
+                        }
+                    });
+                }
+            }
+            return html;
         }
         
         // Event listeners
@@ -588,6 +789,9 @@
                 // Hide regenerate button when switching modes
                 regenerateBtn.style.display = 'none';
                 lastRequest = null;
+
+                // Update action labels
+                updateActionLabels();
             });
         });
         
@@ -602,17 +806,49 @@
         // Function to update UI for mode
         function updateUIForMode() {
             const config = modeConfigs[currentMode];
-            
             // Show/hide input groups based on mode requirements
-            textInputGroup.style.display = config.requiresText ? 'block' : 'none';
-            headerInputGroup.style.display = config.requiresHeader ? 'block' : 'none';
-            bodyInputGroup.style.display = config.requiresBody ? 'block' : 'none';
+            if (currentMode === 'mode_5') {
+                textInputGroup.style.display = 'none';
+                fileUploadGroup.style.display = 'block';
+                headerInputGroup.style.display = 'none';
+                bodyInputGroup.style.display = 'none';
+                parametersSection.style.display = 'none';
+            } else {
+                textInputGroup.style.display = config.requiresText ? 'block' : 'none';
+                fileUploadGroup.style.display = 'none';
+                headerInputGroup.style.display = config.requiresHeader ? 'block' : 'none';
+                bodyInputGroup.style.display = config.requiresBody ? 'block' : 'none';
+                parametersSection.style.display = 'block';
+            }
             
-            // Update labels based on mode
+            // // Update labels based on mode
+            // if (currentMode === 'mode_4') {
+            //     headerInput.placeholder = 'Enter high-level context for description generation...';
+            // } else if (currentMode === 'mode_2') {
+            //     headerInput.placeholder = 'Enter topic or theme for enrichment...';
+            // }
+
+            // Update placeholders based on mode
             if (currentMode === 'mode_4') {
                 headerInput.placeholder = 'Enter high-level context for description generation...';
+                bodyInput.placeholder = 'Enter structured JSON data (e.g., {"key": "value"})...';
+            } else if (currentMode === 'mode_6') {
+                headerInput.placeholder = 'Enter high-level context for document generation...';
+                bodyInput.placeholder = 'Enter a detailed description for the document...';
             } else if (currentMode === 'mode_2') {
                 headerInput.placeholder = 'Enter topic or theme for enrichment...';
+            }
+        }
+
+        function updateActionLabels(){
+            const labels = modeActionLabels[currentMode];
+            if(!labels) return;
+            generateBtn.textContent = labels.primary;
+            // Hide regenerate for mode 5 (file upload)
+            if(currentMode === 'mode_5') {
+                regenerateBtn.style.display = 'none';
+            } else {
+                regenerateBtn.textContent = labels.regenerate;
             }
         }
         
@@ -624,6 +860,9 @@
         headerInput.addEventListener('input', () => {
             updateCounter(headerCounter, headerInput.value);
         });
+        bodyInput.addEventListener('input', () => {
+            updateCounter(bodyCounter, bodyInput.value);
+        });
         
         // Max length type change handler
         maxLengthType.addEventListener('change', () => {
@@ -631,10 +870,39 @@
             maxLengthValue.disabled = !hasLimit;
             if (!hasLimit) {
                 maxLengthValue.value = '';
+                updateLengthHint();
             } else {
                 maxLengthValue.placeholder = maxLengthType.value === 'words' ? '50' : '200';
+                updateLengthHint();
             }
         });
+        maxLengthValue.addEventListener('input', () => updateLengthHint());
+
+        function estimateTokens(type, value){
+            if(!type || !value) return null;
+            const v = parseInt(value);
+            if(isNaN(v) || v <= 0) return null;
+            if(type === 'characters'){
+                // ~4 chars per token heuristic
+                return Math.max(10, Math.round(v / 4));
+            }
+            // words: ~0.75 words per token => tokens ≈ words / 0.75
+            return Math.max(10, Math.round(v / 0.75));
+        }
+
+        function updateLengthHint(){
+            const hintEl = document.getElementById('length-hint');
+            const type = maxLengthType.value;
+            const value = maxLengthValue.value;
+            if(!type || !value){
+                hintEl.style.display = 'none';
+                hintEl.textContent = '';
+                return;
+            }
+            const tokens = estimateTokens(type, value);
+            hintEl.style.display = 'block';
+            hintEl.textContent = `The model will target <= ${value} ${type} (≈ ${tokens} tokens). Output is generated to fit; no post trimming.`;
+        }
         
         // Generate button handler
         generateBtn.addEventListener('click', async () => {
@@ -656,13 +924,58 @@
         
         async function generateCompletion(isRegeneration = false) {
             const config = modeConfigs[currentMode];
-            
+            // Mode 5: file upload
+            if (currentMode === 'mode_5') {
+                const file = fileUpload.files[0];
+                if (!file) {
+                    showError('Please select a document file to summarize.');
+                    return;
+                }
+                if (!['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
+                    showError('Unsupported file type. Please upload a PDF, DOCX, or TXT file.');
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    showError('File is too large. Max 10MB allowed.');
+                    return;
+                }
+                loading.classList.add('active');
+                generateBtn.disabled = true;
+                const labels = modeActionLabels[currentMode];
+                if(labels){
+                    loadingMessage.textContent = labels.loading;
+                }
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const response = await fetch(`${API_BASE}/summarize-document`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!response.ok) {
+                        let errorMsg = 'Document summarization failed';
+                        try {
+                            const errorData = await response.json();
+                            errorMsg = errorData.detail || errorMsg;
+                        } catch {}
+                        throw new Error(errorMsg);
+                    }
+                    const result = await response.json();
+                    addResult(result.markdown_summary, 'mode_5', false);
+                } catch (err) {
+                    showError(err.message || 'An error occurred during document summarization');
+                } finally {
+                    loading.classList.remove('active');
+                    generateBtn.disabled = false;
+                }
+                return;
+            }
+            // Other modes (1-4, 6): original logic
             // Prepare request data
             const requestData = {
                 mode: currentMode,
                 regenerate: isRegeneration
             };
-            
             // Add text if required
             if (config.requiresText) {
                 if (!textInput.value.trim()) {
@@ -671,7 +984,6 @@
                 }
                 requestData.text = textInput.value.trim();
             }
-            
             // Add header if required  
             if (config.requiresHeader) {
                 if (!headerInput.value.trim()) {
@@ -680,50 +992,55 @@
                 }
                 requestData.header = headerInput.value.trim();
             }
-            
-            // Add body if required (mode 4)
+            // Add body if required (mode 4 JSON, mode 6 free text)
             if (config.requiresBody) {
                 if (!bodyInput.value.trim()) {
-                    showError('Please enter body data (JSON) for this mode.');
+                    showError(currentMode === 'mode_4' ? 'Please enter body data (JSON) for this mode.' : 'Please enter a body description for this mode.');
                     return;
                 }
-                try {
-                    requestData.body = JSON.parse(bodyInput.value.trim());
-                } catch (e) {
-                    showError('Invalid JSON format in body field.');
+                if (currentMode === 'mode_4') {
+                    try {
+                        requestData.body = JSON.parse(bodyInput.value.trim());
+                    } catch (e) {
+                        showError('Invalid JSON format in body field.');
+                        return;
+                    }
+                } else if (currentMode === 'mode_6') {
+                    requestData.body = bodyInput.value.trim();
+                }
+            }
+            // Debug: log request payload
+            console.log('Sending payload:', requestData);
+            // Add dynamic parameters (skip for mode 5)
+            if (currentMode !== 'mode_5') {
+                if (minWordsInput.value) {
+                    requestData.min_input_words = parseInt(minWordsInput.value);
+                }
+                if (maxLengthType.value && maxLengthValue.value) {
+                    requestData.max_output_length = {
+                        type: maxLengthType.value,
+                        value: parseInt(maxLengthValue.value)
+                    };
+                }
+                // Validate minimum word count
+                const minWords = requestData.min_input_words || config.defaultMinWords;
+                if (config.requiresText && countWords(textInput.value) < minWords) {
+                    showError(`Please provide at least ${minWords} words in the text input.`);
+                    return;
+                }
+                if (config.requiresHeader && countWords(headerInput.value) < minWords) {
+                    showError(`Please provide at least ${minWords} words in the header input.`);
                     return;
                 }
             }
-            
-            // Add dynamic parameters
-            if (minWordsInput.value) {
-                requestData.min_input_words = parseInt(minWordsInput.value);
-            }
-            
-            if (maxLengthType.value && maxLengthValue.value) {
-                requestData.max_output_length = {
-                    type: maxLengthType.value,
-                    value: parseInt(maxLengthValue.value)
-                };
-            }
-            
-            // Validate minimum word count
-            const minWords = requestData.min_input_words || config.defaultMinWords;
-            if (config.requiresText && countWords(textInput.value) < minWords) {
-                showError(`Please provide at least ${minWords} words in the text input.`);
-                return;
-            }
-            
-            if (config.requiresHeader && countWords(headerInput.value) < minWords) {
-                showError(`Please provide at least ${minWords} words in the header input.`);
-                return;
-            }
-            
             // Show loading state
             loading.classList.add('active');
             generateBtn.disabled = true;
             regenerateBtn.disabled = true;
-            
+            const labels = modeActionLabels[currentMode];
+            if(labels){
+                loadingMessage.textContent = labels.loading;
+            }
             try {
                 const response = await fetch(`${API_BASE}/autocomplete`, {
                     method: 'POST',
@@ -732,25 +1049,19 @@
                     },
                     body: JSON.stringify(requestData)
                 });
-                
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.detail || 'Generation failed');
                 }
-                
                 const result = await response.json();
-                
                 // Add result to display
                 addResult(result.completion, result.mode, isRegeneration);
-                
                 // Store last request for regeneration
                 lastRequest = requestData;
-                
                 // Show regenerate button if supported
                 if (config.supportsRegenerate && !isRegeneration) {
                     regenerateBtn.style.display = 'inline-block';
                 }
-                
             } catch (err) {
                 showError(err.message || 'An error occurred during generation');
             } finally {
@@ -760,11 +1071,17 @@
                 regenerateBtn.disabled = false;
             }
         }
+    // File upload element for Mode 5
+    const fileUploadGroup = document.getElementById('file-upload-group');
+    const fileUpload = document.getElementById('file-upload');
         
         // Initialize UI
-        updateUIForMode();
+    updateUIForMode();
+    updateActionLabels();
         updateCounter(textCounter, textInput.value);
         updateCounter(headerCounter, headerInput.value);
+        if (bodyCounter) updateCounter(bodyCounter, bodyInput.value);
+        updateLengthHint();
     </script>
 </body>
 </html>

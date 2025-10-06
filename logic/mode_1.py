@@ -4,14 +4,18 @@
 # enriched versions with dynamic output length control.
 
 from typing import Optional, Dict, Union
-from utils.generator import GroqGenerator
-from utils.validator import calculate_max_tokens
+from utils.generator import generate
+from utils.validator import build_length_instruction, plan_output_length
 
-class Mode1Logic:    
-    def __init__(self):
-        # Initialize the Groq LLM generator for text completion
-        self.generator = GroqGenerator()
-    
+
+class Mode1:
+    """
+    Context-Aware Regenerative Completion
+    Enhances long-form user input using AI while preserving context.
+    Maintains the style, tone, and semantics of the input text while generating
+    enriched versions with dynamic output length control.
+    """
+
     def get_system_prompt(self) -> str:
         return (
             """
@@ -25,49 +29,40 @@ class Mode1Logic:
             - Avoid adding unnecessary complexity or changing the original direction
 
             Your completion should feel like a natural continuation that the original author might have written themselves.
-        """
+            """
         )
-    
+
     def prepare_user_message(self, text: str, max_output_length: Optional[Dict[str, Union[str, int]]] = None) -> str:
         message = (
-            f"Please complete and enhance the following partial content naturally and logically:\n\n{text}\n\n"
-            "Your task is to enhance the provided text while preserving its original tone, style, and intent."
-            "Focus on maintaining the context and meaning, ensuring that your completion feels like a natural continuation of the original content."
-            
-            # f"Enhance and enrich this text while preserving its context and meaning:\n\n{text}\n\n"
-            # "Provide an improved version that maintains the original intent but with better "
-            # "structure, clarity, and flow."
+            "Continue the following text naturally. Preserve tone, voice, tense, and intent. "
+            "If it ends mid-thought, resolve it smoothly without forcing an artificial conclusion.\n\n"
+            f"Input:\n{text}\n\n"
+            "Produce a seamless continuation (not a rewrite of the original portion)."
         )
-        
-        if max_output_length:
-            length_type = max_output_length.get("type", "characters")
-            length_value = max_output_length.get("value", 200)
-            message += f"\n\nIMPORTANT: Keep your enriched version to a maximum of {length_value} {length_type}."
-        
-        return message
-    
+        return message + build_length_instruction(max_output_length)
+
     def get_generation_parameters(self) -> dict:
         # Use lower temperature for more focused, context-preserving enrichment
-        return {"temperature": 0.3, "top_p": 0.95}
-    
+        return {"temperature": 0.3, "top_p": 0.9}
+
     async def process(
-        self, 
-        text: str, 
+        self,
+        text: str,
         max_output_length: Optional[Dict[str, Union[str, int]]] = None
     ) -> str:
         system_prompt = self.get_system_prompt()
-        user_message = self.prepare_user_message(text, max_output_length)
         gen_params = self.get_generation_parameters()
-        
-        # Calculate max tokens based on output length requirements
-        max_tokens = calculate_max_tokens(max_output_length)
-        
-        completion = await self.generator.generate(
+        # Unified length planning (user provided constraint honored; otherwise inferred)
+        plan = plan_output_length("mode_1", max_output_length, text=text)
+        length_instruction_target = max_output_length or plan["constraint"]
+        user_message = self.prepare_user_message(text, length_instruction_target)
+        max_tokens = plan["token_budget"]
+
+        completion = await generate(
             system_prompt=system_prompt,
             user_message=user_message,
             max_tokens=max_tokens,
             temperature=gen_params["temperature"],
             top_p=gen_params["top_p"]
         )
-        
         return completion

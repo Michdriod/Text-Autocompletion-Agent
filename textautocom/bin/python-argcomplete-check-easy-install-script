@@ -1,7 +1,7 @@
 #!/Users/mac/Text-Autocompletion-Agent/textautocom/bin/python3
 # -*- coding: utf-8 -*-
 import sys
-from uvicorn.main import main
+from argcomplete.scripts.python_argcomplete_check_easy_install_script import main
 if __name__ == "__main__":
     if sys.argv[0].endswith("-script.pyw"):
         sys.argv[0] = sys.argv[0][:-11]
