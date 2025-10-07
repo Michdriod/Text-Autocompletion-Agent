@@ -51,7 +51,7 @@ async def summarize_chunk(chunk: Chunk, *, ratio: float = PER_CHUNK_SUMMARY_RATI
         user_message=user_prompt,
         max_tokens=token_budget,
         temperature=0.3,
-        top_p=0.9,
+        top_p=0.95,
     )
     # Basic word count; no trimming – rely on future compression check
     wc = len(content.split())

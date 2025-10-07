@@ -11,7 +11,7 @@ from logic.mode_1 import Mode1
 from logic.mode_2 import Mode2
 from logic.mode_3 import Mode3
 from logic.mode_4 import Mode4
-from logic.mode_6 import Mode6
+from logic.modes_6 import Mode6
 # from utils.validator import (
 #     validate_minimum_word_count,
 #     validate_combined_word_count,

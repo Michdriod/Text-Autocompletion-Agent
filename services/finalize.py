@@ -18,6 +18,9 @@ REFINE_SYSTEM_PROMPT = (
     "Your job is to refine, compress, and clarify a draft summary into a single, coherent, well-structured Markdown document. "
     "Preserve all key facts, entities, and causal relationships. Use clear sectioning, bullet lists, and concise language. "
     "Do not add a title unless one is clearly present."
+    "In every summary make sure you are consistent and not generating some summary that are not consistent."
+    "Make sure your summary in exhaustive and clear, dont summarize unprofessionally."
+    "Make sure you are not trimming the summary output, this is compulsory."
 )
 
 REFINE_USER_PROMPT = (
@@ -44,7 +47,7 @@ async def refine_summary(
         user_message=user_prompt,
         max_tokens=token_budget,
         temperature=0.2,
-        top_p=0.9,
+        top_p=0.95,
     )
     wc = len(content.split())
     ratio = wc / float(target_words) if target_words else 1.0

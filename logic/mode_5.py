@@ -19,6 +19,7 @@ class Mode5:
         "Your job is to refine, compress, and clarify a draft summary into a single, coherent, well-structured Markdown document. "
         "Preserve all key facts, entities, and causal relationships. Use clear sectioning, bullet lists, and concise language. "
         "Do not add a title unless one is clearly present."
+        "Be as exhaustive and detailed as you are suppose to be, dont trim any output, intelligently end every summary well with conclusion."
     )
 
     FINAL_USER_PROMPT_TEMPLATE = (
@@ -94,7 +95,7 @@ class Mode5:
                 user_message=user_prompt,
                 max_tokens=calculate_max_tokens({"type": "words", "value": baseline.final_target_words}),
                 temperature=0.2,
-                top_p=0.9,
+                top_p=0.95,
             )).strip()
             logger.info(f"[Mode5] Step 8: Final LLM call (generate) complete. Length: {len(new_text.split())} words.")
             summary_words = len(new_text.split())

@@ -12,7 +12,7 @@ api_key = os.getenv("GROQ_API_KEY")
 if not api_key:
     raise ValueError("GROQ_API_KEY environment variable not set")
 model = GroqModel(
-    'llama-3.1-8b-instant',  
+    'llama-3.3-70b-versatile',  
     provider=GroqProvider(api_key=api_key)
 )
 agent = Agent(model)
