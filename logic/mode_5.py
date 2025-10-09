@@ -1,4 +1,4 @@
-from utils.generator import generate
+from utils.generator import generate, generate_with_continuation
 from utils.validator import calculate_max_tokens
 from typing import Optional
 from services.ingestion import extract_text
@@ -77,7 +77,9 @@ class Mode5:
         logger.info(f"[Mode5] Step 7: Refinement plan: {decision}")
 
         logger.info("[Mode5] Step 8: Final synthesis/refinement started.")
-        system_prompt = self.FINAL_SYSTEM_PROMPT
+        # Add an explicit end marker instruction so continuation logic can detect completion
+        end_marker = "<END_OF_DOCUMENT>"
+        system_prompt = self.FINAL_SYSTEM_PROMPT + f"\n\nWhen you have finished the document, append the exact marker on its own line: {end_marker}"
         user_prompt = self.FINAL_USER_PROMPT_TEMPLATE.format(
             target_words=baseline.final_target_words,
             draft=merged.markdown
@@ -89,15 +91,20 @@ class Mode5:
                 max_tokens=None,  # Let refine_summary plan tokens
                 # system_prompt and user_message will be overridden below
             )
-            logger.info("[Mode5] Step 8: Final LLM call (generate) started.")
-            new_text = (await generate(
+            logger.info("[Mode5] Step 8: Final LLM call (generate_with_continuation) started.")
+            # Use continuation-capable generator to avoid trimmed outputs
+            raw = await generate_with_continuation(
                 system_prompt=system_prompt,
                 user_message=user_prompt,
                 max_tokens=calculate_max_tokens({"type": "words", "value": baseline.final_target_words}),
                 temperature=0.2,
                 top_p=0.95,
-            )).strip()
-            logger.info(f"[Mode5] Step 8: Final LLM call (generate) complete. Length: {len(new_text.split())} words.")
+                end_marker=end_marker,
+                max_iterations=6,
+            )
+            # Remove end marker if present
+            new_text = raw.replace(end_marker, "").strip()
+            logger.info(f"[Mode5] Step 8: Final LLM call complete. Raw length: {len(raw.split())} words; Final length: {len(new_text.split())} words.")
             summary_words = len(new_text.split())
             achieved_ratio = summary_words / float(baseline.final_target_words)
             final = final.model_copy(update={

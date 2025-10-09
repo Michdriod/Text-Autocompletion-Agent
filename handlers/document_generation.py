@@ -23,7 +23,7 @@ Returns:
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from logic.modes_6 import Mode6
+from logic.mode_6 import Mode6
 import logging
 from services.document_schema import DocumentDevelopmentRequest, DocumentDevelopmentResponse
 

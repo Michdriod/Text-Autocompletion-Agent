@@ -5,6 +5,10 @@ from typing import Dict, Any, Optional, Union
 from utils.generator import generate
 from utils.validator import build_length_instruction, plan_output_length
 import json
+import re
+import logging
+
+
 class Mode4:
     """
     Description Agent
@@ -14,140 +18,60 @@ class Mode4:
     def get_system_prompt(self) -> str:
         return (
             """
-            You are a financial transaction narrator. Your task is to convert JSON transaction data into natural, meaningful descriptions using logical reasoning.
+            You are a financial transaction narrator. Your task is to convert JSON transaction data into clear, consistent natural-language descriptions.
 
-            IMPORTANT: Generate varied descriptions each time. If asked to regenerate, provide a different but equally accurate version.
+            GOAL: Prefer a consistent, active phrasing for transaction descriptions. Unless the header explicitly requests variation, always produce descriptions that start with an action noun like "Transfer" or "Payment" followed by the currency and amount, then the direction (to/from) and the recipient, and finally any inferred purpose or method.
 
-            YOUR PROCESS:
-            ANALYZE the transaction data:
+            PRIMARY PROCESS (ANALYSIS):
+            - Extract: amount, recipient/merchant, date, method, category, reference/memo, description fields
+            - Check for: recurring patterns, location, timing clues
+            - Determine recipient type: business (LLC/Inc/Corp, brand), personal (personal name), utility/government (official titles or .gov)
 
-            Extract: amount, recipient/merchant, date, method, category
-            Look for: reference, purpose, memo, description fields
-            Check for: recurring patterns, location, timing clues
+            INFERENCE HINTS:
+            - By amount: small purchases vs subscriptions vs bills vs rent vs salary (see examples below)
+            - By recipient/merchant: map common merchants to purposes (e.g., "Shell" -> fuel)
+            - By timing: repeating monthly amounts -> recurring payment/rent; end-of-month -> utilities/rent
 
-            DETERMINE recipient type:
-
-            Business: LLC/Inc/Corp suffixes, brand names, service keywords
-            Personal: First name + last name only, no business indicators
-            Utility/Government: Official names, department titles, .gov domains
-
-            INFER likely purpose using these patterns:
-            By Amount:
-
-            $1-25: Coffee, snacks, parking, small items
-            $26-100: Meals, gas, groceries, app subscriptions
-            $101-500: Bills, utilities, shopping, car payments
-            $501-2000: Rent, insurance, major purchases
-            $2000+: Salary, large transfers, investments
-
-            By Recipient Name:
-
-            "Starbucks/Coffee shop" → coffee/food purchase
-            "Gas Station/Shell/BP" → fuel purchase
-            "Dr./Medical Center" → healthcare payment
-            "Electric/Water/Gas Company" → utility bill
-            "Netflix/Spotify" → subscription service
-            Personal names → individual transfer
-
-            By Timing:
-
-            Same amount monthly → recurring bill or rent
-            Bi-weekly deposits → salary payments
-            End of month → utility/rent payments
-
-
-
-            CURRENCY AND NATURAL LANGUAGE RULES:
-            - When generating the amount, always use the correct currency symbol based on the 'currency' field in the JSON (e.g., '₦' for NGN, '$' for USD, '€' for EUR). If the currency is NGN, use '₦' before the amount.
-            - Make the description sound natural and human, as if explaining the transaction to a friend. Avoid robotic or overly formal language.
-            - VARY YOUR LANGUAGE: Sometimes use "Transfer of [amount] to [recipient]...", other times "₦[amount] was sent to [recipient]...", or similar natural alternatives. Alternate between active and passive voice, and use different connectors (e.g., "via", "using", "through"). Avoid repeating the same sentence structure for every transaction. For example, prefer "₦10,000 was sent to Hammed A. as a gift using the mobile app" or "Transfer of ₦10,000 to Hammed A. for a gift via mobile app" over repetitive or robotic phrasing.
+            STYLE RULES (HIGH PRIORITY):
+            - Preferred structure: "[Transaction type] of [currency][amount] to [recipient] [for inferred purpose] [via method]."
+              Example (preferred): "Transfer of ₦10,000 to Hammed A. via mobile app as a gift."
+            - Avoid passive constructions that begin with the amount and use verbs like "was sent", "was paid", or "was transferred", unless the header explicitly requests passive voice.
+            - Always place the amount immediately after the transaction type or currency symbol and format amounts with thousands separators and up to two decimals when relevant.
+            - Use the currency symbol from the 'currency' field (e.g., '₦' for NGN, '$' for USD, '€' for EUR).
 
             DIRECTIONALITY RULES:
-            When generating the description, always infer the direction of the transaction:
-            - Use "to [recipient]" if the transaction is a debit or outgoing transfer.
-            - Use "from [sender]" if the transaction is a credit or incoming deposit.
-            - If both sender and recipient are present, use the transaction type and account roles to determine direction.
-            - Never assume; always use the JSON fields to decide.
-
-            GENERATE description following this exact format (but feel free to use more natural language):
-            "[Transaction type] of [currency][amount] [to/from] [recipient/sender] [for inferred purpose]"
-
-            EXAMPLES TO FOLLOW:
-            Input: {"amount": 1200, "recipient": "Sunset Apartments LLC", "date": "2024-02-01"}
-            Analysis: $1200 + LLC business + Feb 1st = rent payment
-            Output: "Payment of $1,200.00 to Sunset Apartments LLC for monthly rent."
-            Input: {"amount": 45.50, "merchant": "Shell Gas Station", "method": "credit_card"}
-            Analysis: Mid-range amount + gas station = fuel purchase
-            Output: "Payment of $45.50 at Shell Gas Station for fuel."
-            Input: {"amount": 2800, "sender": "ABC Manufacturing Inc", "type": "deposit"}
-            Analysis: Large deposit + Inc business = salary
-            Output: "Deposit of $2,800.00 from ABC Manufacturing Inc for salary payment."
-            Input: {"amount": 25, "recipient": "Mike Johnson", "method": "venmo"}
-            Analysis: Small amount + personal name + P2P = personal transfer
-            Output: "Transfer of $25.00 to Mike Johnson."
+            - Use "to [recipient]" for debits/outgoing transfers; "from [sender]" for credits/incoming deposits.
+            - Use JSON fields to determine direction; do not invent roles.
 
             SAFETY RULES:
+            - NEVER speculate about personal relationships or private details.
+            - When purpose is unclear, use neutral phrasing: "Payment to [recipient]".
+            - If unsure about recipient type, use generic terms like "merchant" or "business".
 
-            NEVER speculate about personal relationships or private details
-            When purpose is unclear, use neutral language: "Payment to [recipient]"
-            DON'T make assumptions about financial situations
-            If unsure about recipient type, use generic terms like "merchant" or "business"
+            EXAMPLES and HEURISTICS:
+            - $1-25: coffee, snacks, parking
+            - $26-100: meals, gas, groceries, subscriptions
+            - $101-500: bills, utilities, shopping
+            - $501-2000: rent, insurance, major purchases
+            - $2000+: salary, large transfers
 
-            LANGUAGE VARIATIONS:
-            Use different words each time:
+            Example transformations:
+            Input: {"amount": 1200, "recipient": "Sunset Apartments LLC", "date": "2024-02-01"}
+            Output: "Payment of $1,200.00 to Sunset Apartments LLC for monthly rent."
 
-            Transaction types: Payment, Transfer, Purchase, Deposit, Transaction
-            Connectors: to, from, at, with
-            Purpose words: for, regarding, related to, as a
+            Input: {"amount": 45.50, "merchant": "Shell Gas Station", "method": "credit_card"}
+            Output: "Payment of $45.50 at Shell Gas Station for fuel."
 
-            Now analyze the provided transaction and generate a natural description following this process.
+            Input: {"amount": 2800, "sender": "ABC Manufacturing Inc", "type": "deposit"}
+            Output: "Deposit of $2,800.00 from ABC Manufacturing Inc for salary payment."
+
+            Input: {"amount": 25, "recipient": "Mike Johnson", "method": "venmo"}
+            Output: "Transfer of $25.00 to Mike Johnson."
+
+            Now analyze the provided transaction and generate a single, concise natural description following the preferred active structure above. If the header explicitly requests variation, adjust tone or voice accordingly.
             """
-                   
-            
-            # """
-            # You are a structured data interpreter and narrative generator. Your role is to analyze JSON payloads and convert them into natural language descriptions based on the context and tone specified in `{header}`.
-
-            # The `{header}` will define your narrative approach (e.g., "Transaction Description Generator", "Product Summary Creator", "Event Report Writer"). Use this to determine:
-            # - The appropriate tone and formality level
-            # - The target audience and use case
-            # - The level of detail and technical specificity
-            # - The narrative structure and flow
-
-            # When processing the structured JSON body, extract relevant information from the JSON structure and weave it into coherent, natural-sounding descriptions that serve the specified purpose.
-
-            # Here are examples of how to handle different payload types:
-
-            # **Example 1:**
-            # Header: "Transaction Description Generator"
-            # Payload: `{"amount": 45.99, "merchant": "Coffee Bean Cafe", "category": "Food & Dining", "date": "2024-01-15", "method": "credit_card"}`
-            # Output: "Transfer of $45.99 to Coffee Bean Cafe for coffee and snacks."
-
-            # **Example 2:**
-            # Header: "Transaction Description Generator"
-            # Payload: `{"amount": 1250.00, "recipient": "John Smith", "date": "2024-01-20", "method": "bank_transfer", "reference": "Rent payment February 2024"}`
-            # Output: "Transfer of $1,250.00 to John Smith for February rent."
-
-            # **Example 3:**
-            # Header: "Transaction Description Generator"
-            # Payload: `{"amount": 2500.00, "sender": "Acme Corp", "date": "2024-01-18", "method": "direct_deposit"}`
-            # Output: "Transfer of $2,500.00 from Acme Corp for salary payment."
-
-            # **Example 4:**
-            # Header: "Product Summary Creator"
-            # Payload: `{"name": "Wireless Bluetooth Headphones", "price": 129.99, "rating": 4.3, "reviews": 1247, "features": ["noise_cancellation", "30hr_battery", "quick_charge"]}`
-            # Output: "The Wireless Bluetooth Headphones are priced at $129.99 and have earned a solid 4.3-star rating from 1,247 customer reviews. Key features include advanced noise cancellation technology, an impressive 30-hour battery life, and convenient quick charge capability."
-
-            # **Example 5:**
-            # Header: "Event Report Writer"
-            # Payload: `{"event_type": "webinar", "title": "Digital Marketing Trends", "attendees": 342, "duration": 90, "engagement_rate": 0.78, "host": "Marketing Pro Institute"}`
-            # Output: "The Marketing Pro Institute hosted a 90-minute webinar titled 'Digital Marketing Trends' which attracted 342 attendees. The session achieved a strong engagement rate of 78%, indicating high participant interest and interaction throughout the presentation."     
-            # """
-            
-            # "You are a description agent. Given a high-level context (header) and a structured JSON body, "
-            # "generate one or more clear, natural language descriptions that accurately summarize or describe the contents. "
-            # "Descriptions should be human-readable, contextually relevant, and faithful to the data."
         )
-    
+
     def prepare_user_message(
         self,
         header: str,
@@ -155,7 +79,7 @@ class Mode4:
         max_output_length: Optional[Dict[str, Union[str, int]]] = None
     ) -> str:
         formatted_body = json.dumps(body, indent=2)
-        message = (          
+        message = (
             f"Header: {header}\n\n"
             f"Body (JSON):\n{formatted_body}\n\n"
             "Based on the specified context, please convert the following JSON data into a natural language description:"
@@ -163,15 +87,11 @@ class Mode4:
             "Generate a clear, natural-sounding description that appropriately interprets and presents the structured data."
             "Descriptions should be clear, concise, and appropriate to the header context."
         )
-        # if max_output_length:
-        #     length_type = max_output_length.get("type", "characters")
-        #     length_value = max_output_length.get("value", 200)
-        #     message += f"\n\nIMPORTANT: Keep your description(s) to a maximum of {length_value} {length_type}."
         return message + build_length_instruction(max_output_length)
-    
+
     def get_generation_parameters(self) -> dict:
         return {"temperature": 0.2, "top_p": 0.95}
-    
+
     async def process(
         self,
         header: str,
@@ -184,6 +104,7 @@ class Mode4:
         length_instruction_target = max_output_length or plan["constraint"]
         user_message = self.prepare_user_message(header, body, length_instruction_target)
         max_tokens = plan["token_budget"]
+
         completion = await generate(
             system_prompt=system_prompt,
             user_message=user_message,
@@ -191,4 +112,25 @@ class Mode4:
             temperature=gen_params["temperature"],
             top_p=gen_params["top_p"]
         )
+
+        # Passive-voice detection: if output starts with a currency symbol or contains passive verbs,
+        # request a forced active rewrite.
+        passive_pattern = re.compile(r"^(\s*[₦$€]\d|.*\b(was sent|was paid|was transferred)\b)", re.IGNORECASE)
+        if passive_pattern.search(completion):
+            forced_instruction = (
+                "The previous output used passive phrasing. Please rewrite the description using the preferred active structure: "
+                "Start with an action noun such as 'Transfer' or 'Payment', then 'of [currency][amount] to [recipient] ...'. Do NOT use passive voice."
+            )
+            regen_system = system_prompt + "\n\nPriority: enforce active phrasing."
+            regen_user = user_message + "\n\n" + forced_instruction
+            logging.getLogger(__name__).info("[Mode4] Passive phrasing detected; regenerating with active-voice enforcement.")
+            regen = await generate(
+                system_prompt=regen_system,
+                user_message=regen_user,
+                max_tokens=max_tokens,
+                temperature=0.1,
+                top_p=0.95,
+            )
+            return regen
+
         return completion
