@@ -394,6 +394,51 @@
                 <input type="file" id="file-upload" accept=".pdf,.docx,.txt" />
                 <div style="font-size:12px;color:#555;margin-top:5px;">Max 10MB. Only PDF, DOCX, or TXT files are supported.</div>
             </div>
+            <!-- Mode 5 Input Type Toggle -->
+            <div class="input-group" id="mode5-input-type-group" style="display:none;">
+                <label>Mode 5 Input Source:</label>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:14px;">
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_source" value="file" checked>
+                        <span>Upload File</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_source" value="raw">
+                        <span>Paste Text</span>
+                    </label>
+                </div>
+            </div>
+            <!-- Raw Text Area for Mode 5 (pasted) -->
+            <div class="input-group" id="mode5-raw-text-group" style="display:none;">
+                <label for="mode5-raw-text">Paste Document Text:</label>
+                <textarea id="mode5-raw-text" placeholder="Paste full document text here for summarization..."></textarea>
+                <div class="counter" id="mode5-raw-counter">0 words, 0 characters</div>
+            </div>
+            <!-- Mode 5 target words (ratio removed) -->
+            <div class="input-group" id="mode5-target-group" style="display:none;">
+                <label>Summary Target Words (Optional):</label>
+                <input type="number" id="mode5-target-words" placeholder="Target words (e.g., 250)" min="20" style="flex:1;min-width:160px;" />
+                <div id="mode5-target-hint" style="font-size:12px;color:#555;margin-top:6px;">Enter a target or leave blank for auto behavior.</div>
+            </div>
+            <!-- Mode 5 output format selection -->
+            <div class="input-group" id="mode5-output-format-group" style="display:none;">
+                <label>Output Format:</label>
+                <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:14px;">
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_output_format" value="markdown" checked>
+                        <span>Markdown</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_output_format" value="plain">
+                        <span>Plain Text</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_output_format" value="both">
+                        <span>Both</span>
+                    </label>
+                </div>
+                <div style="font-size:12px;color:#555;margin-top:6px;">Plain removes formatting; Both returns both Markdown & plain.</div>
+            </div>
             
             <!-- Header Input (for modes 2, 4, 6) -->
             <div class="input-group" id="header-input-group" style="display: none;">
@@ -567,6 +612,13 @@
         const textCounter = document.getElementById('text-counter');
         const headerCounter = document.getElementById('header-counter');
         const bodyCounter = document.getElementById('body-counter');
+    const mode5InputTypeGroup = document.getElementById('mode5-input-type-group');
+    const mode5RawTextGroup = document.getElementById('mode5-raw-text-group');
+    const mode5RawText = document.getElementById('mode5-raw-text');
+    const mode5RawCounter = document.getElementById('mode5-raw-counter');
+    const mode5TargetGroup = document.getElementById('mode5-target-group');
+    const mode5TargetWords = document.getElementById('mode5-target-words');
+    const mode5OutputFormatGroup = document.getElementById('mode5-output-format-group');
         const minWordsInput = document.getElementById('min-words');
         const maxLengthType = document.getElementById('max-length-type');
         const maxLengthValue = document.getElementById('max-length-value');
@@ -621,23 +673,34 @@
             
             const meta = document.createElement('div');
             meta.className = 'result-meta';
-            meta.textContent = `Mode: ${mode.replace('_', ' ').toUpperCase()}${isRegeneration ? ' (Alternative)' : ''} • Generated: ${new Date().toLocaleTimeString()}`;
+            let baseMeta = `Mode: ${mode.replace('_', ' ').toUpperCase()}${isRegeneration ? ' (Alternative)' : ''} • Generated: ${new Date().toLocaleTimeString()}`;
+            // Inject Mode 5 resolved target metadata if available
+            if (mode === 'mode_5' && typeof content === 'object' && content !== null) {
+                const rm = content.meta || content.length_enforcement || content.ingest || {};
+            }
+            meta.textContent = baseMeta;
             
             const contentDiv = document.createElement('div');
             contentDiv.className = 'result-content';
             let formattedHtml = '';
             if (mode === 'mode_5' && window.marked) {
-                // Render markdown as HTML for Mode 5
-                formattedHtml = marked.parse(content || '');
+                let mdSource = '';
+                if (typeof content === 'object' && content !== null) {
+                    if (content.markdown_summary) mdSource = content.markdown_summary;
+                    else if (content.plain_summary) mdSource = content.plain_summary;
+                } else {
+                    mdSource = content || '';
+                }
+                formattedHtml = marked.parse(mdSource || '');
                 contentDiv.classList.add('formatted');
                 contentDiv.innerHTML = formattedHtml;
             } else {
-                formattedHtml = formatStructured(content);
+                formattedHtml = formatStructured(typeof content === 'string' ? content : (content.markdown_summary || content.plain_summary || ''));
                 if(formattedHtml){
                     contentDiv.classList.add('formatted');
                     contentDiv.innerHTML = formattedHtml;
                 } else {
-                    contentDiv.textContent = content;
+                    contentDiv.textContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
                 }
             }
 
@@ -649,11 +712,19 @@
             toggleBtn.onclick = () => {
                 if(showingFormatted){
                     contentDiv.classList.remove('formatted');
-                    contentDiv.textContent = content; // raw
+                    let rawText = '';
+                    if (typeof content === 'object' && content !== null) {
+                        rawText = content.markdown_summary || content.plain_summary || JSON.stringify(content, null, 2);
+                    } else rawText = content;
+                    contentDiv.textContent = rawText; // raw
                 } else {
                     if (mode === 'mode_5' && window.marked) {
+                        let mdSource = '';
+                        if (typeof content === 'object' && content !== null) {
+                            mdSource = content.markdown_summary || content.plain_summary || '';
+                        } else mdSource = content || '';
                         contentDiv.classList.add('formatted');
-                        contentDiv.innerHTML = marked.parse(content || '');
+                        contentDiv.innerHTML = marked.parse(mdSource || '');
                     } else {
                         contentDiv.classList.add('formatted');
                         contentDiv.innerHTML = formattedHtml;
@@ -684,6 +755,46 @@
             
             resultsSection.style.display = 'block';
         }
+
+        // Mode 5 target hint logic
+        const mode5TargetHint = document.getElementById('mode5-target-hint');
+        function updateMode5TargetHint() {
+            if (currentMode !== 'mode_5') return;
+            let words = 0;
+            // If raw source selected use pasted; else attempt estimate from main text input (if visible)
+            const sourceType = document.querySelector('input[name="mode5_source"]:checked')?.value || 'file';
+            if (sourceType === 'raw') {
+                words = countWords(mode5RawText.value);
+            } else {
+                // file case: can't know until upload
+            }
+            const val = mode5TargetWords.value.trim();
+            if (val) {
+                const target = parseInt(val);
+                if (words > 0 && target > words) {
+                    mode5TargetHint.textContent = `Requested ${target} exceeds document length (${words}); will cap to ${words}.`;
+                } else {
+                    mode5TargetHint.textContent = `Will enforce exactly ${target} words.`;
+                }
+            } else {
+                if (words === 0) {
+                    mode5TargetHint.textContent = 'No target entered: small docs (<=500 words) default to 100; larger docs auto 20% after processing.';
+                } else if (words <= 500) {
+                    mode5TargetHint.textContent = `No target: will default to 100 words (document has ${words}).`;
+                } else {
+                    const autoTarget = Math.max(1, Math.round(words * 0.20));
+                    mode5TargetHint.textContent = `No target: will auto-summarize to 20% ≈ ${autoTarget} words (document has ${words}).`;
+                }
+            }
+        }
+
+        mode5TargetWords.addEventListener('input', updateMode5TargetHint);
+        mode5RawText.addEventListener('input', () => { updateCounter(mode5RawCounter, mode5RawText.value); updateMode5TargetHint(); });
+        document.addEventListener('change', (e)=>{
+            if (e.target && e.target.name === 'mode5_source') {
+                updateMode5TargetHint();
+            }
+        });
 
         function escapeHtml(str){
             return str
@@ -809,13 +920,28 @@
             // Show/hide input groups based on mode requirements
             if (currentMode === 'mode_5') {
                 textInputGroup.style.display = 'none';
-                fileUploadGroup.style.display = 'block';
+                mode5InputTypeGroup.style.display = 'block';
+                // Determine selected source
+                const selectedSource = document.querySelector('input[name="mode5_source"]:checked')?.value || 'file';
+                if (selectedSource === 'file') {
+                    fileUploadGroup.style.display = 'block';
+                    mode5RawTextGroup.style.display = 'none';
+                } else {
+                    fileUploadGroup.style.display = 'none';
+                    mode5RawTextGroup.style.display = 'block';
+                }
+                mode5TargetGroup.style.display = 'block';
+                if(mode5OutputFormatGroup) mode5OutputFormatGroup.style.display = 'block';
                 headerInputGroup.style.display = 'none';
                 bodyInputGroup.style.display = 'none';
                 parametersSection.style.display = 'none';
             } else {
                 textInputGroup.style.display = config.requiresText ? 'block' : 'none';
                 fileUploadGroup.style.display = 'none';
+                mode5InputTypeGroup.style.display = 'none';
+                mode5RawTextGroup.style.display = 'none';
+                mode5TargetGroup.style.display = 'none';
+                if(mode5OutputFormatGroup) mode5OutputFormatGroup.style.display = 'none';
                 headerInputGroup.style.display = config.requiresHeader ? 'block' : 'none';
                 bodyInputGroup.style.display = config.requiresBody ? 'block' : 'none';
                 parametersSection.style.display = 'block';
@@ -862,6 +988,19 @@
         });
         bodyInput.addEventListener('input', () => {
             updateCounter(bodyCounter, bodyInput.value);
+        });
+        if(mode5RawText){
+            mode5RawText.addEventListener('input', ()=>{
+                updateCounter(mode5RawCounter, mode5RawText.value);
+            });
+        }
+        // Listen for Mode 5 input source change
+        document.addEventListener('change', (e)=>{
+            if(e.target && e.target.name === 'mode5_source'){
+                if(currentMode === 'mode_5'){
+                    updateUIForMode();
+                }
+            }
         });
         
         // Max length type change handler
@@ -926,19 +1065,7 @@
             const config = modeConfigs[currentMode];
             // Mode 5: file upload
             if (currentMode === 'mode_5') {
-                const file = fileUpload.files[0];
-                if (!file) {
-                    showError('Please select a document file to summarize.');
-                    return;
-                }
-                if (!['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
-                    showError('Unsupported file type. Please upload a PDF, DOCX, or TXT file.');
-                    return;
-                }
-                if (file.size > 10 * 1024 * 1024) {
-                    showError('File is too large. Max 10MB allowed.');
-                    return;
-                }
+                const source = document.querySelector('input[name="mode5_source"]:checked')?.value || 'file';
                 loading.classList.add('active');
                 generateBtn.disabled = true;
                 const labels = modeActionLabels[currentMode];
@@ -947,7 +1074,39 @@
                 }
                 try {
                     const formData = new FormData();
-                    formData.append('file', file);
+                    if(source === 'file'){
+                        const file = fileUpload.files[0];
+                        if (!file) {
+                            showError('Please select a document file to summarize.');
+                            throw new Error('Validation failed');
+                        }
+                        if (!['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
+                            showError('Unsupported file type. Please upload a PDF, DOCX, or TXT file.');
+                            throw new Error('Validation failed');
+                        }
+                        if (file.size > 10 * 1024 * 1024) {
+                            showError('File is too large. Max 10MB allowed.');
+                            throw new Error('Validation failed');
+                        }
+                        formData.append('file', file);
+                    } else {
+                        const rawVal = mode5RawText.value.trim();
+                        if(!rawVal){
+                            showError('Please paste some text to summarize.');
+                            throw new Error('Validation failed');
+                        }
+                        formData.append('raw_text', rawVal);
+                    }
+                    // Optional target overrides
+                    const tWords = mode5TargetWords.value.trim();
+                    if(tWords){
+                        const asInt = parseInt(tWords,10);
+                        if(isNaN(asInt) || asInt < 20){
+                            showError('Target words must be a number >= 20');
+                            throw new Error('Validation failed');
+                        }
+                        formData.append('target_words', asInt.toString());
+                    }
                     const response = await fetch(`${API_BASE}/summarize-document`, {
                         method: 'POST',
                         body: formData
@@ -1081,6 +1240,7 @@
         updateCounter(textCounter, textInput.value);
         updateCounter(headerCounter, headerInput.value);
         if (bodyCounter) updateCounter(bodyCounter, bodyInput.value);
+        if (mode5RawCounter) updateCounter(mode5RawCounter, mode5RawText.value);
         updateLengthHint();
     </script>
 </body>

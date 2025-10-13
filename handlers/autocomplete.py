@@ -40,9 +40,7 @@ class AutocompleteRequest(BaseModel):
     # body: Optional[Dict[str, Any]] = None  # For mode_4
     min_input_words: Optional[int] = None
     max_output_length: Optional[Dict[str, Union[str, int]]] = None
-    # Mode 5 optional controls
-    summary_style: Optional[str] = None  # 'brief' | 'balanced' | 'detailed'
-    layered: Optional[bool] = False
+
 
 # Response model for text enrichment
 class AutocompleteResponse(BaseModel):

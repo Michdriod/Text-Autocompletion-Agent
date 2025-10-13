@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Optional
 from pydantic import BaseModel
 
-from config.settings import PER_CHUNK_SUMMARY_RATIO, summary_target_words
+from config.settings import PER_CHUNK_SUMMARY_RATIO, MIN_EXTRACTED_WORDS, MAX_FINAL_WORDS
 
 
 class BaselineMetrics(BaseModel):
@@ -32,18 +32,29 @@ def count_words(text: str) -> int:
     return sum(1 for t in text.split() if t.strip())
 
 
-def compute_baseline_metrics(cleaned_text: str, final_ratio_override: Optional[float] = None) -> BaselineMetrics:
-    """Compute baseline metrics for a cleaned document.
+def compute_baseline_metrics(
+    cleaned_text: str,
+    final_target_override: Optional[int] = None,
+) -> BaselineMetrics:
+    """Compute baseline metrics (ratio disabled).
 
     Args:
-        cleaned_text: Document text after preprocessing (clean_text output concatenated).
-        final_ratio_override: Optional override for final summary ratio.
+        cleaned_text: preprocessed full document text.
+        final_target_override: explicit final summary length in words (mandatory unless caller handles defaults).
 
-    Returns:
-        BaselineMetrics(total_words, final_target_words, per_chunk_ratio)
+    Behavior:
+        * If final_target_override provided -> clamp within global bounds.
+        * If not provided -> raise ValueError (callers must decide defaults, e.g. small-doc fallback).
     """
     total = count_words(cleaned_text)
-    final_target = summary_target_words(total, ratio=final_ratio_override)
+    if final_target_override is None or final_target_override <= 0:
+        raise ValueError(
+            "final_target_override is required (ratio-based targeting disabled). Provide explicit target words or a default before calling compute_baseline_metrics."
+        )
+    target = final_target_override
+    if MAX_FINAL_WORDS:
+        target = min(target, MAX_FINAL_WORDS)
+    final_target = max(MIN_EXTRACTED_WORDS, target)
     return BaselineMetrics(
         total_words=total,
         final_target_words=final_target,

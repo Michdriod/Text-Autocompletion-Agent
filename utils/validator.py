@@ -95,8 +95,8 @@ def calculate_max_tokens(max_output_length: Optional[Dict[str, Union[str, int]]]
         # ≈0.75 words per token -> words / 0.75
         est = int(length_value / 0.75)
 
-    # Final safety bounds
-    return max(60, min(est, 4000))
+    # Final safety bounds - increased upper limit for summarization
+    return max(60, min(est, 8000))
 
 
 def plan_output_length(mode: str, max_output_length: Optional[Dict[str, Union[str, int]]] = None, **kwargs) -> Dict[str, Any]:
