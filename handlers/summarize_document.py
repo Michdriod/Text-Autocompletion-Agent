@@ -1,5 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from logic.mode_5 import Mode5
+from config.settings import MAX_PROMPT_LENGTH
+from utils.validator import validate_prompt_length
 import os
 import tempfile
 import shutil
@@ -12,6 +14,7 @@ async def summarize_document(
     raw_text: str | None = Form(default=None),
     target_words: int | None = Form(default=None),
     output_format: str = Form(default="markdown"),
+    user_prompt: str | None = Form(default=None)
 ):
     """Summarize an uploaded document OR directly pasted raw text.
 
@@ -26,6 +29,19 @@ async def summarize_document(
     logic = Mode5()
     if target_words is not None and target_words <= 0:
         raise HTTPException(status_code=400, detail="target_words must be positive")
+    
+    
+    # Validate prompt length
+    if user_prompt:
+        cleaned_prompt, was_truncated = validate_prompt_length(user_prompt, MAX_PROMPT_LENGTH)
+        if was_truncated:
+            # Option 1: Reject
+            raise HTTPException(
+                status_code=400,
+                detail=f"Prompt exceeds maximum length of {MAX_PROMPT_LENGTH} characters"
+            )
+        user_prompt = cleaned_prompt
+    
 
     # If file provided, process as before
     if file is not None:
@@ -39,7 +55,7 @@ async def summarize_document(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {e}")
         try:
-            result = await logic.process_document_file(tmp_path, target_words=target_words, output_format=output_format)
+            result = await logic.process_document_file(tmp_path, target_words=target_words, output_format=output_format, user_prompt=user_prompt)
             return result
         finally:
             try:
@@ -49,9 +65,11 @@ async def summarize_document(
     else:
         # Raw text path
         try:
-            result = await logic.process_raw_text(raw_text.strip(), source_name="pasted_text", target_words=target_words, output_format=output_format)
+            result = await logic.process_raw_text(raw_text.strip(), source_name="pasted_text", target_words=target_words, output_format=output_format, user_prompt=user_prompt)
             return result
         except ValueError as ve:
             raise HTTPException(status_code=400, detail=str(ve))
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to process raw text: {e}")
+    
+    

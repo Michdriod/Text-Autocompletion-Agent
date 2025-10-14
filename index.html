@@ -373,7 +373,7 @@
             <strong>Description Agent:</strong> Generates one or more natural language descriptions from a high-level context (header) and a structured JSON body. Useful for summarizing or describing structured data (e.g., transaction details).
         </div>
         <div class="mode-description" id="desc-mode_5">
-            <strong>Document Summarization:</strong> Analyzes and distills long-form content into concise, clear, and logically structured summaries. Perfect for quickly understanding the key points of a document.
+            <strong>Document Summarization:</strong> Analyzes and distills long-form content into concise, clear, and logically structured summaries. Perfect for quickly understanding the key points of a document. You can provide custom instructions (tone, focus, audience) and even specify the target word count directly in your prompt (e.g., "summarize in 150 words focusing on financial risks").
         </div>
         <div class="mode-description" id="desc-mode_6">
             <strong>Document Development:</strong> Creates comprehensive and well-structured documents based on a topic (header) and detailed description (body). Ideal for generating business proposals, technical guides, or creative stories.
@@ -419,6 +419,15 @@
                 <label>Summary Target Words (Optional):</label>
                 <input type="number" id="mode5-target-words" placeholder="Target words (e.g., 250)" min="20" style="flex:1;min-width:160px;" />
                 <div id="mode5-target-hint" style="font-size:12px;color:#555;margin-top:6px;">Enter a target or leave blank for auto behavior.</div>
+            </div>
+            <!-- Mode 5 custom prompt -->
+            <div class="input-group" id="mode5-prompt-group" style="display:none;">
+                <label for="mode5-user-prompt">Custom Prompt (Optional):</label>
+                <textarea id="mode5-user-prompt" placeholder="Example: Summarize in 180 words focusing on financial risks and key trends with a formal tone..." rows="3" maxlength="2000"></textarea>
+                <div class="counter" id="mode5-prompt-counter">0 / 2000 characters</div>
+                <div style="font-size:12px;color:#555;margin-top:6px;">
+                    💡 Tip: You can specify word count here (e.g., "summarize in 150 words"). If both prompt and target words are provided, the prompt takes priority.
+                </div>
             </div>
             <!-- Mode 5 output format selection -->
             <div class="input-group" id="mode5-output-format-group" style="display:none;">
@@ -618,6 +627,9 @@
     const mode5RawCounter = document.getElementById('mode5-raw-counter');
     const mode5TargetGroup = document.getElementById('mode5-target-group');
     const mode5TargetWords = document.getElementById('mode5-target-words');
+    const mode5PromptGroup = document.getElementById('mode5-prompt-group');
+    const mode5UserPrompt = document.getElementById('mode5-user-prompt');
+    const mode5PromptCounter = document.getElementById('mode5-prompt-counter');
     const mode5OutputFormatGroup = document.getElementById('mode5-output-format-group');
         const minWordsInput = document.getElementById('min-words');
         const maxLengthType = document.getElementById('max-length-type');
@@ -655,6 +667,19 @@
             if (words < minWords) {
                 element.classList.add('error');
             } else if (words < minWords + 5) {
+                element.classList.add('warning');
+            }
+        }
+        
+        function updatePromptCounter(element, text) {
+            const chars = text.length;
+            const maxChars = 2000;
+            element.textContent = `${chars} / ${maxChars} characters`;
+            
+            element.classList.remove('warning', 'error');
+            if (chars > maxChars) {
+                element.classList.add('error');
+            } else if (chars > maxChars - 100) {
                 element.classList.add('warning');
             }
         }
@@ -790,6 +815,7 @@
 
         mode5TargetWords.addEventListener('input', updateMode5TargetHint);
         mode5RawText.addEventListener('input', () => { updateCounter(mode5RawCounter, mode5RawText.value); updateMode5TargetHint(); });
+        mode5UserPrompt.addEventListener('input', () => { updatePromptCounter(mode5PromptCounter, mode5UserPrompt.value); });
         document.addEventListener('change', (e)=>{
             if (e.target && e.target.name === 'mode5_source') {
                 updateMode5TargetHint();
@@ -931,6 +957,7 @@
                     mode5RawTextGroup.style.display = 'block';
                 }
                 mode5TargetGroup.style.display = 'block';
+                mode5PromptGroup.style.display = 'block';
                 if(mode5OutputFormatGroup) mode5OutputFormatGroup.style.display = 'block';
                 headerInputGroup.style.display = 'none';
                 bodyInputGroup.style.display = 'none';
@@ -941,6 +968,7 @@
                 mode5InputTypeGroup.style.display = 'none';
                 mode5RawTextGroup.style.display = 'none';
                 mode5TargetGroup.style.display = 'none';
+                mode5PromptGroup.style.display = 'none';
                 if(mode5OutputFormatGroup) mode5OutputFormatGroup.style.display = 'none';
                 headerInputGroup.style.display = config.requiresHeader ? 'block' : 'none';
                 bodyInputGroup.style.display = config.requiresBody ? 'block' : 'none';
@@ -1107,6 +1135,15 @@
                         }
                         formData.append('target_words', asInt.toString());
                     }
+                    // Optional user prompt
+                    const userPrompt = mode5UserPrompt.value.trim();
+                    if(userPrompt){
+                        if(userPrompt.length > 2000){
+                            showError('Custom prompt must not exceed 2000 characters');
+                            throw new Error('Validation failed');
+                        }
+                        formData.append('user_prompt', userPrompt);
+                    }
                     const response = await fetch(`${API_BASE}/summarize-document`, {
                         method: 'POST',
                         body: formData
@@ -1241,6 +1278,7 @@
         updateCounter(headerCounter, headerInput.value);
         if (bodyCounter) updateCounter(bodyCounter, bodyInput.value);
         if (mode5RawCounter) updateCounter(mode5RawCounter, mode5RawText.value);
+        if (mode5PromptCounter) updatePromptCounter(mode5PromptCounter, mode5UserPrompt.value);
         updateLengthHint();
     </script>
 </body>

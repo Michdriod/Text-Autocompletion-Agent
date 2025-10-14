@@ -39,6 +39,10 @@ ALLOWED_MIME_TYPES = {
 PDF_MIN_CHARS_PER_PAGE: int = 120
 
 
+# Maximum length for user-provided prompts
+MAX_PROMPT_LENGTH: int = 2000  # characters
+
+
 def summary_target_words(original_words: int, ratio: float | None = None) -> int:
 	"""Compute the word target for the final summary.
 

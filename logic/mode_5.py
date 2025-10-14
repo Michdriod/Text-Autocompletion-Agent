@@ -73,7 +73,7 @@ class Mode5:
     )
 
     # ---------------- Public API ----------------
-    async def process_document_file(self, file_path: str, target_words: Optional[int] = None, output_format: str = "markdown") -> dict:
+    async def process_document_file(self, file_path: str, target_words: Optional[int] = None, output_format: str = "markdown", user_prompt: str | None = None) -> dict:
         logger = self._get_logger()
         logger.info("[Mode5] Step 1: Ingestion started.")
         raw_text, meta = extract_text(file_path)
@@ -81,14 +81,14 @@ class Mode5:
         # Convert DocumentMeta object to dict and add source_file
         meta_dict = meta.model_dump() if hasattr(meta, 'model_dump') else dict(meta)
         meta_dict["source_file"] = file_path
-        return await self._process_core(raw_text, meta_dict, logger, target_words, output_format=output_format)
+        return await self._process_core(raw_text, meta_dict, logger, target_words, output_format=output_format, user_prompt=user_prompt)
 
-    async def process_raw_text(self, text: str, source_name: str = "raw_text_input", target_words: Optional[int] = None, output_format: str = "markdown") -> dict:
+    async def process_raw_text(self, text: str, source_name: str = "raw_text_input", target_words: Optional[int] = None, output_format: str = "markdown", user_prompt: str | None = None) -> dict:
         logger = self._get_logger()
         logger.info("[Mode5] Step 1: Ingestion (raw text) started.")
         meta = {"source": source_name, "ingest_type": "raw_text"}
         logger.info("[Mode5] Step 1: Ingestion (raw text) complete.")
-        return await self._process_core(text, meta, logger, target_words, output_format=output_format)
+        return await self._process_core(text, meta, logger, target_words, output_format=output_format, user_prompt=user_prompt)
 
     # ---------------- Internal helpers ----------------
     def _get_logger(self):
@@ -102,7 +102,7 @@ class Mode5:
         logger.setLevel(logging.INFO)
         return logger
 
-    async def _process_core(self, raw_text: str, meta: dict, logger, target_words: Optional[int], *, output_format: str) -> dict:
+    async def _process_core(self, raw_text: str, meta: dict, logger, target_words: Optional[int], *, output_format: str, user_prompt: str | None) -> dict:
         # Step 2: Preprocess
         logger.info("[Mode5] Step 2: Preprocessing started.")
         cleaned = clean_text(raw_text)
@@ -110,8 +110,22 @@ class Mode5:
 
         # Step 3: Determine target (absolute with adaptive fallback)
         total_words = len([w for w in cleaned.split() if w.strip()])
+        self.original_words = total_words  # Store for prompt target validation
         small_doc = total_words < self.SMALL_DOCUMENT_DIRECT_THRESHOLD
-        if target_words is not None:
+
+        # Extract target from prompt if present
+        prompt_target = None
+        if user_prompt:
+            prompt_target = self._extract_target_from_prompt(user_prompt)
+            if prompt_target:
+                logger.info(f"[Mode5] Found target in prompt: {prompt_target} words")
+
+        # Determine effective target with updated precedence
+        if prompt_target is not None:
+            effective_target = prompt_target
+            target_mode = "prompt"
+            prompt_overrode_param = target_words is not None
+        elif target_words is not None:
             if target_words <= 0:
                 raise ValueError("target_words must be positive.")
             if target_words > total_words:
@@ -120,20 +134,25 @@ class Mode5:
             else:
                 effective_target = target_words
                 target_mode = "user_absolute"
+            prompt_overrode_param = False
         else:
             if small_doc:
                 effective_target = self.DEFAULT_ABSOLUTE_TARGET_WORDS
                 target_mode = "small_default_100"
             else:
                 effective_target = max(1, round(total_words * 0.20))
-                # Guarantee at least 1 word; never exceed original; 20% cannot exceed original anyway.
                 effective_target = min(effective_target, total_words)
                 target_mode = "auto_20pct"
+            prompt_overrode_param = False
+
         meta.update({
             'requested_target_words': target_words,
             'resolved_target_words': effective_target,
             'target_mode': target_mode,
             'original_total_words': total_words,
+            'user_prompt_present': user_prompt is not None,
+            'parsed_prompt_target_words': prompt_target,
+            'prompt_overrode_param': prompt_overrode_param
         })
         baseline = compute_baseline_metrics(
             cleaned,
@@ -145,7 +164,7 @@ class Mode5:
         if small_doc:
             logger.info(f"[Mode5] Small document direct summarization (words={baseline.total_words} < {self.SMALL_DOCUMENT_DIRECT_THRESHOLD}).")
             # Direct summarization for small documents
-            final_summary = await self._direct_summarize(cleaned, effective_target, logger)
+            final_summary = await self._direct_summarize(cleaned, effective_target, logger, user_prompt=user_prompt)
         else:
             logger.info("[Mode5] Large document chunked summarization.")
             # Chunked approach for large documents
@@ -179,21 +198,26 @@ class Mode5:
 
 
 
-    async def _direct_summarize(self, content: str, target_words: int, logger) -> str:
+    async def _direct_summarize(self, content: str, target_words: int, logger, user_prompt: str | None = None) -> str:
         """Direct summarization for small documents without chunking."""
         logger.info(f"[Mode5] Direct summarization to {target_words} words.")
         
-        user_prompt = self.DIRECT_SUMMARIZATION_TEMPLATE.format(
-            target_words=target_words,
-            content=content
-        )
+        # Build user message - either custom prompt or default template
+        if user_prompt:
+            prompt_text = f"{user_prompt}\n\nDOCUMENT:\n{content}"
+            logger.info("[Mode5] Using custom user prompt for summarization")
+        else:
+            prompt_text = self.DIRECT_SUMMARIZATION_TEMPLATE.format(
+                target_words=target_words,
+                content=content
+            )
         
         # Calculate appropriate token budget - be generous to prevent truncation
         token_budget = calculate_max_tokens({"type": "words", "value": int(target_words * 2.0)})
         
         summary = await generate(
             system_prompt=self.DIRECT_SUMMARIZATION_SYSTEM,
-            user_message=user_prompt,
+            user_message=prompt_text,
             max_tokens=token_budget,
             temperature=0.3,
             top_p=0.9
@@ -269,7 +293,7 @@ class Mode5:
             "Summary:",
             "The following is a summary:",
             "This is a summary of the text:",
-            "Below is a summary:",
+            "Below is a summary:"
         ]
         
         cleaned = text.strip()
@@ -284,5 +308,23 @@ class Mode5:
         cleaned = cleaned.lstrip(":- \t\n").strip()
         
         return cleaned
+
+    def _extract_target_from_prompt(self, prompt: str) -> int | None:
+        """Extract word count target from prompt text."""
+        import re
+        patterns = [
+            r'\b(?:in|into|about|around|approximately|approx\.?)\s+(\d{2,5})\s+words?\b',
+            r'\bsummary\s+of\s+(\d{2,5})\s+words?\b',
+            r'\b(\d{2,5})\s+word(?:\b|s\b)'
+        ]
+        
+        for pattern in patterns:
+            if match := re.search(pattern, prompt, re.IGNORECASE):
+                target = int(match.group(1))
+                # Allow smaller targets for very small documents
+                min_target = 5 if self.original_words < 50 else 10
+                if min_target <= target <= self.original_words:
+                    return target
+        return None
 
 __all__ = ["Mode5"]

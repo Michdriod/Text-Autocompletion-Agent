@@ -30,7 +30,7 @@ def count_characters(text: str) -> int:
 def get_default_min_words(mode: ModeType) -> int:
     """Get default minimum word count for each mode."""
     defaults = {
-        ModeType.mode_1: 20,
+        ModeType.mode_1: 2,
         ModeType.mode_2: 2,
         ModeType.mode_3: 0,
         ModeType.mode_4: 2,  # Description Agent: 2 words min
@@ -49,6 +49,19 @@ def validate_minimum_word_count(text: str, mode: ModeType, min_words: Optional[i
         return True
         
     return count_words(text) >= min_words
+
+def validate_prompt_length(prompt: str | None, max_length: int) -> tuple[str | None, bool]:
+    """
+    Validate and optionallly truncates user promt.
+    Returns: (cleaned_prompt, was_truncated)
+    """
+    if not prompt or not prompt.strip():
+        return None, False
+    
+    cleaned = prompt.strip()
+    if len(cleaned) > max_length:
+        return cleaned[:max_length], True
+    return cleaned, False
 
 def validate_combined_word_count(text1: str, text2: str, mode: ModeType) -> bool:
     """Validate combined word count for modes that require multiple inputs."""
