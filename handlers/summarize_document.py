@@ -27,15 +27,14 @@ async def summarize_document(
         raise HTTPException(status_code=400, detail="Provide either a file or non-empty raw_text.")
 
     logic = Mode5()
-    if target_words is not None and target_words <= 0:
-        raise HTTPException(status_code=400, detail="target_words must be positive")
+    # if target_words is not None and target_words <= 0:
+    #     raise HTTPException(status_code=400, detail="target_words must be positive")
     
     
     # Validate prompt length
     if user_prompt:
         cleaned_prompt, was_truncated = validate_prompt_length(user_prompt, MAX_PROMPT_LENGTH)
         if was_truncated:
-            # Option 1: Reject
             raise HTTPException(
                 status_code=400,
                 detail=f"Prompt exceeds maximum length of {MAX_PROMPT_LENGTH} characters"

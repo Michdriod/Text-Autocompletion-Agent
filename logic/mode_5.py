@@ -124,10 +124,10 @@ class Mode5:
         if prompt_target is not None:
             effective_target = prompt_target
             target_mode = "prompt"
-            prompt_overrode_param = target_words is not None
-        elif target_words is not None:
-            if target_words <= 0:
-                raise ValueError("target_words must be positive.")
+            prompt_overrode_param = target_words is not None and target_words > 0
+        elif target_words is not None and target_words > 0:
+            # if target_words <= 0:
+            #     raise ValueError("target_words must be positive.")
             if target_words > total_words:
                 effective_target = total_words
                 target_mode = "user_absolute_capped"
@@ -136,6 +136,7 @@ class Mode5:
                 target_mode = "user_absolute"
             prompt_overrode_param = False
         else:
+            # No valid target provided (None or 0) - use defaults
             if small_doc:
                 effective_target = self.DEFAULT_ABSOLUTE_TARGET_WORDS
                 target_mode = "small_default_100"
