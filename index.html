@@ -400,12 +400,29 @@
                 <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:14px;">
                     <label style="display:flex;align-items:center;gap:6px;">
                         <input type="radio" name="mode5_source" value="file" checked>
-                        <span>Upload File</span>
+                        <span>📄 Upload File</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_source" value="gdrive">
+                        <span>☁️ Google Drive</span>
                     </label>
                     <label style="display:flex;align-items:center;gap:6px;">
                         <input type="radio" name="mode5_source" value="raw">
-                        <span>Paste Text</span>
+                        <span>📝 Paste Text</span>
                     </label>
+                </div>
+            </div>
+            <!-- Google Drive URL Input for Mode 5 -->
+            <div class="input-group" id="mode5-gdrive-group" style="display:none;">
+                <label for="mode5-gdrive-url">Google Drive Public Link:</label>
+                <input 
+                    type="text" 
+                    id="mode5-gdrive-url" 
+                    placeholder="https://drive.google.com/file/d/YOUR_FILE_ID/view or Google Docs link"
+                    style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;font-size:14px;">
+                <div style="font-size:12px;color:#666;margin-top:6px;">
+                    💡 Supports Google Docs, Sheets, Slides, and uploaded files (PDF, DOCX, TXT)<br>
+                    🔓 File must be shared as "Anyone with the link can view"
                 </div>
             </div>
             <!-- Raw Text Area for Mode 5 (pasted) -->
@@ -625,6 +642,8 @@
     const mode5RawTextGroup = document.getElementById('mode5-raw-text-group');
     const mode5RawText = document.getElementById('mode5-raw-text');
     const mode5RawCounter = document.getElementById('mode5-raw-counter');
+    const mode5GdriveGroup = document.getElementById('mode5-gdrive-group');
+    const mode5GdriveUrl = document.getElementById('mode5-gdrive-url');
     const mode5TargetGroup = document.getElementById('mode5-target-group');
     const mode5TargetWords = document.getElementById('mode5-target-words');
     const mode5PromptGroup = document.getElementById('mode5-prompt-group');
@@ -818,6 +837,7 @@
         mode5UserPrompt.addEventListener('input', () => { updatePromptCounter(mode5PromptCounter, mode5UserPrompt.value); });
         document.addEventListener('change', (e)=>{
             if (e.target && e.target.name === 'mode5_source') {
+                updateUIForMode(); // Show/hide appropriate input groups
                 updateMode5TargetHint();
             }
         });
@@ -951,9 +971,15 @@
                 const selectedSource = document.querySelector('input[name="mode5_source"]:checked')?.value || 'file';
                 if (selectedSource === 'file') {
                     fileUploadGroup.style.display = 'block';
+                    mode5GdriveGroup.style.display = 'none';
+                    mode5RawTextGroup.style.display = 'none';
+                } else if (selectedSource === 'gdrive') {
+                    fileUploadGroup.style.display = 'none';
+                    mode5GdriveGroup.style.display = 'block';
                     mode5RawTextGroup.style.display = 'none';
                 } else {
                     fileUploadGroup.style.display = 'none';
+                    mode5GdriveGroup.style.display = 'none';
                     mode5RawTextGroup.style.display = 'block';
                 }
                 mode5TargetGroup.style.display = 'block';
@@ -966,6 +992,7 @@
                 textInputGroup.style.display = config.requiresText ? 'block' : 'none';
                 fileUploadGroup.style.display = 'none';
                 mode5InputTypeGroup.style.display = 'none';
+                mode5GdriveGroup.style.display = 'none';
                 mode5RawTextGroup.style.display = 'none';
                 mode5TargetGroup.style.display = 'none';
                 mode5PromptGroup.style.display = 'none';
@@ -1117,6 +1144,18 @@
                             throw new Error('Validation failed');
                         }
                         formData.append('file', file);
+                    } else if(source === 'gdrive'){
+                        const gdriveUrl = mode5GdriveUrl.value.trim();
+                        if(!gdriveUrl){
+                            showError('Please enter a Google Drive URL.');
+                            throw new Error('Validation failed');
+                        }
+                        // Basic URL validation
+                        if(!gdriveUrl.includes('drive.google.com') && !gdriveUrl.includes('docs.google.com')){
+                            showError('Please enter a valid Google Drive or Google Docs URL.');
+                            throw new Error('Validation failed');
+                        }
+                        formData.append('google_drive_url', gdriveUrl);
                     } else {
                         const rawVal = mode5RawText.value.trim();
                         if(!rawVal){

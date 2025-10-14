@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 from logic.mode_6 import Mode6
 import logging
 from services.document_schema import DocumentDevelopmentRequest, DocumentDevelopmentResponse
+import time
 
 # --- Initialize Router & Logger ---
 router = APIRouter()

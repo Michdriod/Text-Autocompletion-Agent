@@ -84,6 +84,7 @@ def calculate_max_tokens(max_output_length: Optional[Dict[str, Union[str, int]]]
     """
     Convert a (type,value) length constraint into a safe token budget.
     Guarantees a reasonable lower bound so the model can produce content.
+    Includes generous buffer to prevent truncation in long summaries.
     """
     if not max_output_length:
         return 300  # default general budget
@@ -94,21 +95,16 @@ def calculate_max_tokens(max_output_length: Optional[Dict[str, Union[str, int]]]
     # Clamp absurd user values
     length_value = max(20, min(length_value, 20000))
 
-    # if length_type == "characters":
-    #     # ≈4 chars per token -> character target / 4, add 20% buffer
-    #     est = int(max(1, length_value // 4) * 1.2)
-    # else:  # words
-    #     # ≈0.75 words per token -> words / 0.75, add 20% buffer
-    #     est = int((length_value / 0.75) * 1.2)
-        
     if length_type == "characters":
         # ≈4 chars per token -> character target / 4
         est = max(1, length_value // 4)
     else:  # words
         # ≈0.75 words per token -> words / 0.75
-        est = int(length_value / 0.75)
+        # Add 30% buffer to prevent truncation (especially for large summaries)
+        est = int((length_value / 0.75) * 1.3)
 
     # Final safety bounds - increased upper limit for summarization
+    # Allow up to 8000 tokens (≈6000 words) to support very large summaries
     return max(60, min(est, 8000))
 
 
@@ -273,3 +269,79 @@ def plan_output_length(mode: str, max_output_length: Optional[Dict[str, Union[st
 #         return max(100, min(int(length_value / 0.75) + 50, 300))  # Buffer, min 100, max 300
     
 #     return 100  # Default fallback (min)
+
+
+def is_summary_truncated(summary: str) -> bool:
+    """Check if summary appears to be truncated.
+    
+    Args:
+        summary: The generated summary text
+        
+    Returns:
+        True if summary likely truncated, False otherwise
+    """
+    if not summary or not summary.strip():
+        return True
+    
+    summary_stripped = summary.strip()
+    
+    # Check if ends with proper punctuation
+    ends_properly = summary_stripped[-1] in '.!?)"\'"]'
+    
+    # Check if ends mid-sentence (common truncation indicators)
+    truncation_indicators = [
+        '...',  # Trailing ellipsis
+        ' and',
+        ' but',
+        ' or',
+        ' the',
+        ' in',
+        ' on',
+        ' at',
+        ' with',
+        ' for',
+        ' to',
+        ' of',
+        ' as',
+        ',',  # Ends with comma
+    ]
+    
+    ends_with_partial = any(
+        summary_stripped.lower().endswith(indicator) 
+        for indicator in truncation_indicators
+    )
+    
+    return (not ends_properly) or ends_with_partial
+
+
+def complete_truncated_summary(summary: str) -> str:
+    """Attempt to salvage a truncated summary by removing incomplete sentence.
+    
+    Args:
+        summary: Potentially truncated summary
+        
+    Returns:
+        Summary with incomplete sentence removed
+    """
+    if not is_summary_truncated(summary):
+        return summary
+    
+    # Find the last complete sentence
+    # Split by sentence-ending punctuation
+    sentences = []
+    current = []
+    
+    for char in summary:
+        current.append(char)
+        if char in '.!?' and len(current) > 1:
+            sentences.append(''.join(current))
+            current = []
+    
+    # If we have at least one complete sentence, return up to that
+    if sentences:
+        complete_summary = ''.join(sentences).strip()
+        if complete_summary:
+            return complete_summary
+    
+    # If no complete sentences found, return original
+    return summary

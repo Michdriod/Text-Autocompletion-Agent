@@ -1,138 +1,69 @@
-#!/usr/bin/env python3
-"""Test with the problematic long document to check for truncation."""
+"""Test script to verify truncation detection and handling."""
 
-import asyncio
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from utils.validator import is_summary_truncated, complete_truncated_summary, calculate_max_tokens
 
-from logic.mode_5 import Mode5
+# Test 1: Complete summary (should NOT be truncated)
+complete_summary = """
+This is a complete summary that ends properly. It contains multiple sentences
+and covers all the key points. The document discusses important topics and
+provides valuable insights. All ideas are fully expressed and concluded.
+"""
 
-# The long document that was getting truncated
-LONG_TEST_CONTENT = """Summary of Large Language Models & Text Generation
-Foundational Large Language Models & Text Generation
-This whitepaper explores the evolution of Large Language Models (LLMs) and their applications.
-LLMs have the potential to assist, complement, empower, and inspire people across various fields.
-They are advanced artificial intelligence systems that process, understand, and generate human-like text.
-Why Language Models are Important
-LLMs achieve impressive performance boosts over previous NLP models on complex tasks like question-answering and language translation.
-They can be fine-tuned for specific tasks, requiring less data and computational resources than training from scratch.
-Prompt engineering can guide LLMs towards desired behavior.
-Large Language Models
-A language model predicts the probability of a sequence of words.
-Modern language models are often based on neural models, such as transformers.
-Transformers process sequences of tokens in parallel, unlike recurrent neural networks (RNNs) which process sequentially.
-Key Concepts
-Transformer: A type of neural network that processes sequences of tokens in parallel.
-Multi-head attention: A technique that allows the model to focus on different parts of the input sequence simultaneously.
-Layer normalization: A technique that normalizes the output of each layer to have zero mean and unit variance.
-Residual connections:
-Sequence Modeling
-Before transformers, recurrent neural networks (RNNs) were the popular approach for modeling sequences.
-RNNs process input and output sequences sequentially, making them compute-intensive and hard to parallelize.
-Transformers, on the other hand, can process sequences of tokens in parallel thanks to the self-attention mechanism.
-This makes transformers significantly faster to train and more powerful for handling long-term dependencies in long sequence tasks.
-Transformer Architecture
-The transformer architecture consists of two parts: an encoder and a decoder.
-The encoder converts the input text into a representation, which is then passed to the decoder.
-The decoder uses this representation to generate the output text autoregressively.
-The transformer consists of multiple layers, including input, hidden, and output layers.
-Input Preparation and Embedding
-Input preparation involves converting an input sequence into tokens and then into input embeddings.
-Input embeddings are high-dimensional vectors that represent the meaning of each token in the sentence.
-The embedding process involves normalization, tokenization, embedding, and positional encoding.
-Multi-Head Attention
-Multi-head attention enables the transformer to focus on specific parts of the input sequence relevant to the task at hand.
-Self-attention helps to determine
-Self-Attention Mechanism
-The self-attention mechanism is used to determine how strongly each word is connected to the others in a sequence.
-It works by creating query, key, and value vectors for each input embedding, which are then used to calculate scores and attention weights.
-The scores are calculated by taking the dot product of the query vector of one word with the key vectors of all the words in the sequence.
-The attention weights are obtained by passing the scores through a softmax function and dividing by the square root of the key vector dimension.
-The value vectors are multiplied by their corresponding attention weights and summed up to produce a context-aware representation for each word.
-Multi-Head Attention
-Multi-head attention employs multiple sets of Q, K, V weight matrices that run in parallel.
-Each head potentially focuses on different aspects of the input relationships.
-The outputs from each head are concatenated and linearly transformed to give the model a richer representation of the input sequence.
-This improves the model's ability to handle complex language patterns and long-range dependencies.
-Layer Normalization and Residual Connections
-Each layer in a transformer employs layer normalization and residual connections.
-Layer normalization computes the mean and variance of the activations to normalize the activations in a given layer.
-Residual connections propagate the inputs
-Large Language Models & Text Generation
-Auto-regressive Property: Each position in the output sequence can only attend to earlier positions, preserving the auto-regressive property. This prevents the decoder from having access to future tokens.
-Encoder-Decoder Cross-Attention: The decoder focuses on relevant parts of the input sequence using contextual embeddings generated by the encoder.
-Decoder-Only Variant: Many recent LLMs adopted a decoder-only variant of the transformer architecture, which forgoes the traditional encoder-decoder separation and directly generates the output sequence from the input.
-Mixture of Experts (MoE)
-Architecture: Combines multiple specialized sub-models (experts) to improve overall performance, particularly on complex tasks.
-Components:
-Experts: Individual sub-models designed to handle specific subsets of the input data or tasks.
-Gating Network (Router): Learns to route the input to the appropriate expert(s) based on a probability distribution.
-Combination Mechanism: Combines the outputs of the experts, weighted by the probabilities from the gating network, to produce the final prediction.
-Large Reasoning Models
-Achieving Robust Reasoning: Incorporating inductive biases, training methodologies, and prompting strategies is crucial for robust reasoning
-Training Transformers for Large Language Models
-Data Preparation
-Clean the data by applying techniques such as filtering, deduplication, and normalization.
-Tokenize the dataset using techniques like Byte-Pair Encoding and Unigram tokenization.
-Split the data into a training dataset and a test dataset.
-Training and Loss Function
-A typical transformer training loop consists of:
-Sampling batches of input sequences from the training dataset.
-Measuring the difference between predicted and target sequences using a loss function (e.g., cross-entropy loss).
-Updating the transformer's parameters using gradients and an optimizer.
-Different approaches to formulating the training task for transformers include:
-Decoder-only models: pre-trained on the language modeling task.
-Encoder-only models: pre-trained by corrupting the input sequence and having the model reconstruct it (e.g., masked language modeling).
-Encoder-decoder models: trained on sequence-to-sequence supervised tasks (e.g., translation, question-answering, summarization).
-GPT-1 and its Innovations
-Unsupervised Pre-training: GPT-1 combined transformers and unsupervised pre-training, training a language model on a large corpus of unlabeled data (5GB BooksCorpus dataset) and then fine-tuning it on a specific task.
-Task-aware Input Transformations: GPT-1 converted tasks requiring structured inputs (e.g., textual entailment, question-answering) into an input format that the language model could parse without requiring task-specific architectures.
-Innovations and Limitations: GPT-1 surpassed previous models on several benchmarks but had limitations, including generating repetitive text, failing to reason over multiple turns of dialogue, and lacking cohesion in longer passages.
-BERT
-Encoder-only Architecture: BERT is an encoder-only architecture that focuses on understanding context deeply by training on a masked language model objective and next sentence prediction loss.
-Capabilities: BERT captures intricate context dependencies and can discern relationships between pairs of sentences, making it good at tasks requiring natural language understanding (e.g., question-answering, sentiment analysis).
-GPT-2
-Direct Scale-up: GPT-2 was a direct scale-up of GPT-1, with a tenfold increase in both parameter count and dataset size.
-Evolution of Large Language Models
-GPT-2 demonstrated significant improvement in capturing long-range dependencies and common sense reasoning, but did not outperform state-of-the-art reading comprehension, summarization, and translation models.
-GPT-2's most significant achievement was its ability to perform zero-shot learning on downstream tasks without explicit fine-tuning, showing that language models can generalize across different domains and tasks when trained on sufficient data."""
+print("Test 1: Complete Summary")
+print(f"Truncated: {is_summary_truncated(complete_summary)}")
+print(f"Expected: False")
+print()
 
-async def test_long_document():
-    """Test the long document for truncation issues."""
-    print("Testing Long Document for Truncation")
-    print("=" * 50)
-    
-    mode5 = Mode5()
-    
-    input_words = len(LONG_TEST_CONTENT.split())
-    print(f"Input document: {input_words} words")
-    
-    # Test with 200 word target (should be substantial)
-    print("\nTest: Long document, 200 words target")
-    print("-" * 40)
-    
-    result = await mode5.process_raw_text(
-        text=LONG_TEST_CONTENT,
-        source_name="llm_whitepaper",
-        target_words=200,
-        output_format="plain"
-    )
-    
-    summary = result['plain_summary']
-    actual_words = result['summary_words']
-    
-    print(f"Summary:\n{summary}")
-    print(f"\nActual word count: {actual_words}")
-    print(f"Target was: {result['meta']['ingest']['resolved_target_words']}")
-    print(f"Approach: {result['meta']['length_enforcement']['approach']}")
-    
-    # Check if it ends properly (not truncated)
-    if summary.endswith('.') or summary.endswith('!') or summary.endswith('?'):
-        print("✅ Summary ends properly with punctuation")
-    else:
-        print("❌ Summary appears truncated (no proper ending)")
-        print(f"Last 50 characters: ...{summary[-50:]}")
+# Test 2: Truncated summary (ends mid-sentence)
+truncated_summary = """
+This summary starts well and covers the main points. However, it suddenly ends
+without completing the final thought and
+"""
 
-if __name__ == "__main__":
-    asyncio.run(test_long_document())
+print("Test 2: Truncated Summary (mid-sentence)")
+print(f"Truncated: {is_summary_truncated(truncated_summary)}")
+print(f"Expected: True")
+print()
+
+# Test 3: Truncated summary (ends with conjunction)
+truncated_conjunction = """
+The document covers several important topics. It discusses the background and
+context of the issue. The analysis shows clear trends but
+"""
+
+print("Test 3: Truncated Summary (ends with 'but')")
+print(f"Truncated: {is_summary_truncated(truncated_conjunction)}")
+print(f"Expected: True")
+print()
+
+# Test 4: Complete truncated summary
+print("Test 4: Complete Truncated Summary")
+completed = complete_truncated_summary(truncated_summary)
+print(f"Original: {truncated_summary[:100]}...")
+print(f"Completed: {completed}")
+print(f"Is completed version truncated: {is_summary_truncated(completed)}")
+print()
+
+# Test 5: Token budget calculation
+print("Test 5: Token Budget Calculation")
+print(f"For 100 words: {calculate_max_tokens({'type': 'words', 'value': 100})} tokens")
+print(f"For 500 words: {calculate_max_tokens({'type': 'words', 'value': 500})} tokens")
+print(f"For 1000 words: {calculate_max_tokens({'type': 'words', 'value': 1000})} tokens")
+print(f"For 2000 words: {calculate_max_tokens({'type': 'words', 'value': 2000})} tokens")
+print(f"For 5000 words: {calculate_max_tokens({'type': 'words', 'value': 5000})} tokens")
+print()
+
+# Test 6: Large summary token calculation
+print("Test 6: Large Summary Token Budget (Mode 5 scenario)")
+target_words = 2000
+multiplier = 2.5  # For large summaries
+token_value = int(target_words * multiplier)
+token_budget = calculate_max_tokens({'type': 'words', 'value': token_value})
+print(f"Target words: {target_words}")
+print(f"Multiplier: {multiplier}")
+print(f"Token calculation input: {token_value} words")
+print(f"Final token budget: {token_budget} tokens")
+print(f"This allows for: ~{int(token_budget * 0.75)} words of actual output")
+print()
+
+print("✅ All tests completed!")

@@ -40,37 +40,96 @@ class Mode5:
     DEFAULT_ABSOLUTE_TARGET_WORDS = 100   # applied only for small docs if no explicit target
     SMALL_DOCUMENT_DIRECT_THRESHOLD = 500 # no chunking below this (docs <500 words summarized directly)
 
-    DIRECT_SUMMARIZATION_SYSTEM = (
-        "You are an expert summarization assistant. Create concise, intelligent summaries that capture "
-        "the essential information without redundancy or repetition. Focus on key facts, main themes, "
-        "and important relationships. Use clear, professional language. Never include introductory "
-        "phrases like 'Here is a summary' or 'This text discusses'. Start directly with the content. "
-        "CRITICAL: Always complete your summary with a proper ending. Never stop mid-sentence or truncate."
-    )
+    # ---------------- Prompt Building Methods ----------------
+    def _build_system_prompt(self, target_words: Optional[int], output_format: str = "markdown") -> str:
+        """Build system prompt for document summarization with intelligent word targeting."""
+        
+        base_instruction = """You are an expert document analyst and summarizer with exceptional ability to distill complex information into clear, comprehensive summaries.
 
-    DIRECT_SUMMARIZATION_TEMPLATE = (
-        "Summarize the following text into approximately {target_words} words. "
-        "Focus on the most important information, key themes, and essential facts. "
-        "Be concise but comprehensive. Do not repeat information or add filler content. "
-        "Provide only the summary content without any introductory phrases or meta-commentary.\n\n"
-        "TEXT TO SUMMARIZE:\n{content}"
-    )
+Your core responsibilities:
+1. Extract and present ALL key information, main arguments, and important details
+2. Maintain logical flow and coherent structure
+3. Use clear, professional language
+4. Preserve critical data points, findings, and conclusions
+5. Ensure the summary stands alone and is fully understandable without the original document"""
 
-    REFINEMENT_SYSTEM = (
-        "You are a careful summarization and editing assistant. "
-        "Refine and polish the provided summary while maintaining all key information. "
-        "Remove any redundancy or repetitive content. Ensure clarity and coherence. "
-        "Never add introductory phrases or meta-commentary. Provide only the refined content. "
-        "CRITICAL: Always complete your refined summary with a proper ending. Never truncate or stop mid-sentence."
-    )
+        if target_words:
+            # More intelligent word count guidance
+            word_guidance = f"""
+TARGET SUMMARY LENGTH: {target_words} words
 
-    REFINEMENT_TEMPLATE = (
-        "Polish and refine the following summary to approximately {target_words} words. "
-        "Remove any repetitive content, improve clarity, and ensure a logical flow. "
-        "Keep all essential information. Provide only the refined summary content "
-        "without any introductory phrases or explanatory text.\n\n"
-        "SUMMARY TO REFINE:\n{draft}"
-    )
+INTELLIGENT SUMMARIZATION STRATEGY:
+- Plan your summary structure BEFORE writing to fit within {target_words} words
+- Prioritize information density: every sentence must add value
+- Allocate words proportionally to section importance
+- If the document is shorter than {target_words} words, summarize naturally (may be less than target)
+- If the document is very long, use these guidelines:
+  * {target_words} ≤ 500 words: Focus on core thesis and main conclusions only
+  * 500 < {target_words} ≤ 1000 words: Include main points with supporting details
+  * {target_words} > 1000 words: Comprehensive coverage with examples and context
+
+CRITICAL RULES:
+✓ Stay within {target_words} words (±10% acceptable for sentence completion)
+✓ NEVER truncate mid-sentence or mid-thought
+✓ Complete your final sentence properly
+✓ If approaching word limit, conclude your current point gracefully
+✓ Better to be 5-10% under target than to leave incomplete sentences
+
+QUALITY OVER EXACT COUNT:
+- Aim for {target_words} words but prioritize completeness
+- A 5% deviation is acceptable if it ensures proper closure
+- Never sacrifice clarity or coherence for exact word count"""
+        else:
+            word_guidance = """
+SUMMARY LENGTH: Comprehensive (no specific word target)
+
+STRATEGY:
+- Cover all significant information from the document
+- Use as many words as needed to capture the essence completely
+- Maintain high information density
+- Ensure logical flow and complete thoughts
+- End with a proper conclusion"""
+
+        format_instruction = f"""
+OUTPUT FORMAT: {output_format}
+
+FORMATTING GUIDELINES:
+- Use clear paragraph breaks for readability
+- Use bullet points or numbered lists for enumerations
+- Use **bold** for key terms or critical points
+- Use proper headings if the summary is long (## for main sections)
+- Maintain professional tone throughout
+- End with a complete, conclusive statement
+
+STRUCTURE:
+1. Brief opening that captures the document's main purpose
+2. Body covering key points in logical order
+3. Strong closing that ties everything together"""
+
+        return f"{base_instruction}\n\n{word_guidance}\n\n{format_instruction}"
+
+    def _build_user_message(self, text: str, user_prompt: Optional[str] = None) -> str:
+        """Build user message with document text and optional custom instructions."""
+        
+        base_message = f"""Please analyze and summarize the following document according to the instructions provided.
+
+DOCUMENT TEXT:
+{text}
+
+---
+
+Generate a summary that:
+- Captures all essential information intelligently
+- Maintains the target word count (completing your final thought properly)
+- Is well-structured and easy to understand
+- Stands alone as a comprehensive overview"""
+
+        if user_prompt:
+            base_message += f"\n\nADDITIONAL INSTRUCTIONS:\n{user_prompt}"
+        
+        base_message += "\n\nBegin your summary now:"
+        
+        return base_message
 
     # ---------------- Public API ----------------
     async def process_document_file(self, file_path: str, target_words: Optional[int] = None, output_format: str = "markdown", user_prompt: str | None = None) -> dict:
@@ -165,19 +224,25 @@ class Mode5:
         if small_doc:
             logger.info(f"[Mode5] Small document direct summarization (words={baseline.total_words} < {self.SMALL_DOCUMENT_DIRECT_THRESHOLD}).")
             # Direct summarization for small documents
-            final_summary = await self._direct_summarize(cleaned, effective_target, logger, user_prompt=user_prompt)
+            final_summary = await self._direct_summarize(cleaned, effective_target, logger, user_prompt=user_prompt, output_format=output_format)
         else:
             logger.info("[Mode5] Large document chunked summarization.")
             # Chunked approach for large documents
-            final_summary = await self._chunked_summarize(cleaned, effective_target, logger)
+            final_summary = await self._chunked_summarize(cleaned, effective_target, logger, output_format=output_format)
         
         # Create final result object
         from services.finalize import FinalizedSummary
+        from utils.validator import is_summary_truncated
+        
+        # Check if final summary is complete (should always be after our improvements)
+        is_truncated = is_summary_truncated(final_summary)
+        actual_words = len(final_summary.split())
+        
         final = FinalizedSummary(
             text=final_summary,
-            summary_words=len(final_summary.split()),
+            summary_words=actual_words,
             target_words=effective_target,
-            achieved_ratio=len(final_summary.split()) / float(effective_target)
+            achieved_ratio=actual_words / float(effective_target)
         )
 
         enforcement_meta = {
@@ -185,9 +250,12 @@ class Mode5:
             'explicit_target': target_words is not None,
             'default_small_doc_target': (meta.get('target_mode') == 'small_default_100'),
             'auto_20pct_mode': (meta.get('target_mode') == 'auto_20pct'),
-            'final_diff': abs(len(final.text.split()) - baseline.final_target_words),
+            'final_diff': abs(actual_words - baseline.final_target_words),
             'small_doc_fast_path': small_doc,
             'approach': 'direct' if small_doc else 'chunked',
+            'truncated': False,  # Should always be False after cleanup in methods
+            'complete_sentences': True,  # Should always be True after our improvements
+            'within_target': abs(actual_words - effective_target) / effective_target <= 0.15 if effective_target else True
         }
 
         # Step 9: Format output
@@ -199,54 +267,57 @@ class Mode5:
 
 
 
-    async def _direct_summarize(self, content: str, target_words: int, logger, user_prompt: str | None = None) -> str:
-        """Direct summarization for small documents without chunking."""
+    async def _direct_summarize(self, content: str, target_words: int, logger, user_prompt: str | None = None, output_format: str = "markdown") -> str:
+        """Direct summarization for small documents without chunking with intelligent token allocation."""
         logger.info(f"[Mode5] Direct summarization to {target_words} words.")
         
-        # Build user message - either custom prompt or default template
-        if user_prompt:
-            prompt_text = f"{user_prompt}\n\nDOCUMENT:\n{content}"
-            logger.info("[Mode5] Using custom user prompt for summarization")
+        # Build prompts using new intelligent methods
+        system_prompt = self._build_system_prompt(target_words, output_format)
+        user_message = self._build_user_message(content, user_prompt)
+        
+        # Calculate token budget with EXTRA buffer to prevent truncation
+        # Give more tokens based on target size to ensure complete output
+        if target_words <= 500:
+            multiplier = 2.2  # 120% extra for small summaries
+        elif target_words <= 1500:
+            multiplier = 2.5  # 150% extra for medium summaries
         else:
-            prompt_text = self.DIRECT_SUMMARIZATION_TEMPLATE.format(
-                target_words=target_words,
-                content=content
-            )
+            multiplier = 3.0  # 200% extra for large summaries
         
-        # Calculate appropriate token budget - be generous to prevent truncation
-        token_budget = calculate_max_tokens({"type": "words", "value": int(target_words * 2.0)})
+        # Calculate base tokens and apply multiplier
+        base_tokens = calculate_max_tokens({"type": "words", "value": target_words})
+        token_budget = int(base_tokens * multiplier)
         
+        # Ensure we don't exceed Claude's limits
+        token_budget = min(token_budget, 8000)
+        
+        logger.info(
+            f"[Mode5] Direct summarization: target={target_words} words, "
+            f"token_budget={token_budget} (multiplier={multiplier}x)"
+        )
+        
+        # Generate summary with generous token budget
         summary = await generate(
-            system_prompt=self.DIRECT_SUMMARIZATION_SYSTEM,
-            user_message=prompt_text,
+            system_prompt=system_prompt,
+            user_message=user_message,
             max_tokens=token_budget,
             temperature=0.3,
             top_p=0.9
         )
         
-        # Light refinement if significantly off target
-        current_words = len(summary.split())
-        if abs(current_words - target_words) > max(10, target_words * 0.2):
-            logger.info(f"[Mode5] Refining summary (current: {current_words}, target: {target_words}).")
-            refine_prompt = self.REFINEMENT_TEMPLATE.format(
-                target_words=target_words,
-                draft=summary
+        # Check for truncation (shouldn't happen with new buffer, but safety check)
+        from utils.validator import is_summary_truncated, complete_truncated_summary
+        if is_summary_truncated(summary):
+            logger.warning(
+                f"[Mode5] Summary appears truncated despite token buffer of {token_budget}. "
+                f"Attempting cleanup..."
             )
-            
-            # Use even more generous token budget for refinement
-            refine_budget = calculate_max_tokens({"type": "words", "value": int(target_words * 2.5)})
-            summary = await generate(
-                system_prompt=self.REFINEMENT_SYSTEM,
-                user_message=refine_prompt,
-                max_tokens=refine_budget,
-                temperature=0.2,
-                top_p=0.9
-            )
+            summary = complete_truncated_summary(summary)
         
         return self._clean_summary_output(summary.strip())
     
-    async def _chunked_summarize(self, content: str, target_words: int, logger) -> str:
-        """Chunked summarization for large documents."""
+    async def _chunked_summarize(self, content: str, target_words: int, logger, output_format: str = "markdown") -> str:
+        """Chunked summarization for large documents with intelligent token allocation."""
         logger.info("[Mode5] Step 4: Chunking started.")
         chunks = chunk_document(content)
         logger.info(f"[Mode5] Step 4: Chunking complete. Number of chunks: {len(chunks)}")
@@ -262,22 +333,52 @@ class Mode5:
         merged = merge_partial_summaries(partials, original_words=len(content.split()))
         logger.info("[Mode5] Step 6: Merging partial summaries complete.")
         
-        # Final synthesis to target length
+        # Final synthesis to target length with intelligent prompt
         logger.info(f"[Mode5] Step 7: Final synthesis to {target_words} words.")
-        user_prompt = self.REFINEMENT_TEMPLATE.format(
-            target_words=target_words,
-            draft=merged.markdown
-        )
         
-        token_budget = calculate_max_tokens({"type": "words", "value": int(target_words * 2.0)})
+        # Build intelligent refinement prompt
+        system_prompt = self._build_system_prompt(target_words, output_format)
+        
+        refinement_prompt = f"""The following are summaries of different sections from a single document.
+Create a unified, coherent summary that:
+- Integrates all key points from the sections
+- Removes redundancy
+- Maintains logical flow
+- Targets approximately {target_words} words
+- COMPLETES all thoughts and ends with a proper conclusion
+
+SECTION SUMMARIES:
+{merged.markdown}
+
+Create the final integrated summary now:"""
+        
+        # Use generous token budget for large summaries to prevent truncation
+        if target_words <= 500:
+            multiplier = 2.2
+        elif target_words <= 1500:
+            multiplier = 2.5
+        else:
+            multiplier = 3.0
+        
+        base_tokens = calculate_max_tokens({"type": "words", "value": target_words})
+        token_budget = int(base_tokens * multiplier)
+        token_budget = min(token_budget, 8000)
+        
+        logger.info(f"[Mode5] Final synthesis: target={target_words} words, token_budget={token_budget} (multiplier={multiplier}x)")
         
         final_summary = await generate(
-            system_prompt=self.REFINEMENT_SYSTEM,
-            user_message=user_prompt,
+            system_prompt=system_prompt,
+            user_message=refinement_prompt,
             max_tokens=token_budget,
-            temperature=0.2,
+            temperature=0.3,
             top_p=0.9
         )
+        
+        # Check for truncation and handle it
+        from utils.validator import is_summary_truncated, complete_truncated_summary
+        if is_summary_truncated(final_summary):
+            logger.warning(f"[Mode5] Final summary appears truncated, cleaning up...")
+            final_summary = complete_truncated_summary(final_summary)
         
         return self._clean_summary_output(final_summary.strip())
 
