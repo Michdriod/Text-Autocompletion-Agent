@@ -43,19 +43,19 @@ PDF_MIN_CHARS_PER_PAGE: int = 120
 MAX_PROMPT_LENGTH: int = 2000  # characters
 
 
-def summary_target_words(original_words: int, ratio: float | None = None) -> int:
-	"""Compute the word target for the final summary.
+# def summary_target_words(original_words: int, ratio: float | None = None) -> int:
+# 	"""Compute the word target for the final summary.
 
-	Args:
-		original_words: Total words in cleaned full document.
-		ratio: Optional override ratio (defaults to FINAL_SUMMARY_RATIO_DEFAULT).
+# 	Args:
+# 		original_words: Total words in cleaned full document.
+# 		ratio: Optional override ratio (defaults to FINAL_SUMMARY_RATIO_DEFAULT).
 
-	Returns:
-		Integer target word count (bounded by MAX_FINAL_WORDS)
-	"""
-	r = ratio if ratio is not None else FINAL_SUMMARY_RATIO_DEFAULT
-	r = max(0.05, min(r, 0.5))  # guardrail: no less than 5%, no more than 50%
-	target = int(original_words * r)
-	if MAX_FINAL_WORDS:
-		target = min(target, MAX_FINAL_WORDS)
-	return max(MIN_EXTRACTED_WORDS, target)
+# 	Returns:
+# 		Integer target word count (bounded by MAX_FINAL_WORDS)
+# 	"""
+# 	r = ratio if ratio is not None else FINAL_SUMMARY_RATIO_DEFAULT
+# 	r = max(0.05, min(r, 0.5))  # guardrail: no less than 5%, no more than 50%
+# 	target = int(original_words * r)
+# 	if MAX_FINAL_WORDS:
+# 		target = min(target, MAX_FINAL_WORDS)
+# 	return max(MIN_EXTRACTED_WORDS, target)
