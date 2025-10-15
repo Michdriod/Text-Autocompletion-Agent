@@ -288,7 +288,7 @@ Generate a summary that:
         base_tokens = calculate_max_tokens({"type": "words", "value": target_words})
         token_budget = int(base_tokens * multiplier)
         
-        # Ensure we don't exceed Claude's limits
+        # Ensure we don't exceed models's limits
         token_budget = min(token_budget, 8000)
         
         logger.info(

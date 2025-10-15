@@ -2,7 +2,7 @@
 
 ## Overview
 
-A comprehensive AI-powered text processing system built with FastAPI and Claude/Groq LLMs. This application provides six specialized modes for text generation, enrichment, summarization, and document creation. Features include intelligent document summarization with Google Drive integration, adaptive token management, and zero-truncation guarantees for large summaries.
+A comprehensive AI-powered text processing system built with FastAPI and Groq LLMs. This application provides six specialized modes for text generation, enrichment, summarization, and document creation. Features include intelligent document summarization with Google Drive integration, adaptive token management, and zero-truncation guarantees for large summaries.
 
 ## Features
 
@@ -91,7 +91,7 @@ Text-Autocompletion-Agent/
 │   ├── formatter.py            # Output formatting (Markdown/Plain)
 │   └── models.py               # Data models and schemas
 ├── utils/
-│   ├── generator.py            # LLM API integration (Claude/Groq)
+│   ├── generator.py            # LLM API integration (Groq)
 │   ├── validator.py            # Input validation and token calculation
 │   ├── google_drive.py         # Google Drive public file downloader
 │   └── __init__.py
@@ -138,7 +138,7 @@ Text-Autocompletion-Agent/
 ## Configuration
 
 1. **Environment Variables** (`.env` file)
-   - `ANTHROPIC_API_KEY`: Your Claude API key (required for Mode 5, 6)
+   - `GROQ_API_KEY`: Your Groq API key (required for Mode 5, 6)
    - `GROQ_API_KEY`: Your Groq API key (required for Modes 1-4)
 
 2. **Application Settings** (in `config/settings.py`)
@@ -149,7 +149,7 @@ Text-Autocompletion-Agent/
 3. **Model Parameters** (in `utils/generator.py`)
    - Temperature settings per mode (0.2-0.7)
    - Token limits and generation parameters
-   - Model selection: Claude Sonnet 3.5, Groq LLaMA
+   - Model selection: Groq LLaMA
    - Adaptive token budgets for summarization
 
 ## Running the App
@@ -403,7 +403,7 @@ Returns API health status and supported features.
 5. **Direct Summarization Path** (for small documents)
    - Uses `_build_system_prompt()` for intelligent instructions
    - Adaptive token budgets (2.2x-3.0x multipliers)
-   - Single-pass generation with Claude Sonnet 3.5
+   - Single-pass generation with Groq/llama
    - Zero truncation guarantee
 
 6. **Chunked Summarization Path** (for large documents)
@@ -452,7 +452,7 @@ Returns API health status and supported features.
 - Long-form content digestion
 
 **Technical Details:**
-- Uses Claude Sonnet 3.5
+- Groq/llama
 - Temperature: 0.3 (balanced)
 - Max tokens: 8,000 (adaptive)
 - Multi-stage pipeline with quality checks
@@ -478,7 +478,7 @@ Returns API health status and supported features.
 - Report generation
 
 **Technical Details:**
-- Uses Claude Sonnet 3.5
+- Groq/llama
 - Temperature: 0.4
 - Structured generation with sections
 
@@ -605,7 +605,7 @@ User Request → FastAPI Router → Validation → Mode Logic → LLM API → Re
    ├─→ Small Doc: Direct Summarization
    │   ├─→ Build Intelligent Prompt
    │   ├─→ Calculate Token Budget (2.2x-3.0x)
-   │   ├─→ Claude API Call
+   │   ├─→ Groq API Call
    │   └─→ Truncation Check & Cleanup
    │
    └─→ Large Doc: Chunked Summarization
@@ -635,11 +635,11 @@ User Request → FastAPI Router → Validation → Mode Logic → LLM API → Re
 ```python
 base_tokens = (target_words / 0.75) * 1.3  # 30% buffer
 final_tokens = base_tokens * multiplier    # 2.2x-3.0x based on size
-final_tokens = min(final_tokens, 8000)    # Claude's limit
+final_tokens = min(final_tokens, 8000)    # Groq/llamas limit
 ```
 
 #### 2. **LLM Integration** (`utils/generator.py`)
-- Claude Sonnet 3.5 for summarization (Modes 5, 6)
+- Groq/llama for summarization (Modes 5, 6)
 - Groq LLaMA 3.1 70B for enrichment (Modes 1-4)
 - Adaptive temperature per mode
 - Token management
