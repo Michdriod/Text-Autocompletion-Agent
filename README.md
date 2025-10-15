@@ -103,8 +103,6 @@ Text-Autocompletion-Agent/
 ├── requirements.txt            # Python dependencies
 ├── .env                        # Environment variables (not committed)
 ├── README.md                   # This file
-├── IMPLEMENTATION_COMPLETE.md  # Implementation summary
-└── MODE5_INTELLIGENT_SUMMARIZATION.md  # Technical documentation
 ```
 
 ## Installation
@@ -154,16 +152,22 @@ Text-Autocompletion-Agent/
 
 ## Running the App
 
-1. Start the FastAPI server:
+1. Start the backend (FastAPI server):
 
    ```bash
-   uvicorn main:app --host 0.0.0.0 --port 8000
+   python main.py
    ```
 
-2. Access the web interface:
-   - Open `index.html` in a browser
-   - Or visit `http://localhost:8000` for the API
-   - Python -m http.server 8002
+2. Start the frontend (in a new terminal):
+
+   ```bash
+   python -m http.server 8002
+   ```
+
+3. Access the application:
+   - **Frontend UI**: Open browser to `http://localhost:8002`
+   - **API Documentation**: Visit `http://localhost:8000/docs` (Swagger UI)
+   - **Health Check**: `http://localhost:8000/health`
 
 ## API Endpoints
 

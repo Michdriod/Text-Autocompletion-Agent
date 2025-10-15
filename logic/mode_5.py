@@ -54,31 +54,42 @@ Your core responsibilities:
 5. Ensure the summary stands alone and is fully understandable without the original document"""
 
         if target_words:
-            # More intelligent word count guidance
+            # STRICT word count enforcement
             word_guidance = f"""
-TARGET SUMMARY LENGTH: {target_words} words
+🎯 MANDATORY TARGET LENGTH: EXACTLY {target_words} words (±5% MAXIMUM)
 
-INTELLIGENT SUMMARIZATION STRATEGY:
-- Plan your summary structure BEFORE writing to fit within {target_words} words
-- Prioritize information density: every sentence must add value
-- Allocate words proportionally to section importance
-- If the document is shorter than {target_words} words, summarize naturally (may be less than target)
-- If the document is very long, use these guidelines:
-  * {target_words} ≤ 500 words: Focus on core thesis and main conclusions only
-  * 500 < {target_words} ≤ 1000 words: Include main points with supporting details
-  * {target_words} > 1000 words: Comprehensive coverage with examples and context
+⚠️ THIS IS A STRICT REQUIREMENT - NOT A SUGGESTION ⚠️
 
-CRITICAL RULES:
-✓ Stay within {target_words} words (±10% acceptable for sentence completion)
-✓ NEVER truncate mid-sentence or mid-thought
-✓ Complete your final sentence properly
-✓ If approaching word limit, conclude your current point gracefully
-✓ Better to be 5-10% under target than to leave incomplete sentences
+ABSOLUTE REQUIREMENTS:
+1. Your summary MUST be approximately {target_words} words
+2. Acceptable range: {int(target_words * 0.95)} - {int(target_words * 1.05)} words
+3. DO NOT exceed this range under ANY circumstances
+4. Plan your content allocation BEFORE writing
+5. If you reach the word limit, STOP gracefully with a complete sentence
 
-QUALITY OVER EXACT COUNT:
-- Aim for {target_words} words but prioritize completeness
-- A 5% deviation is acceptable if it ensures proper closure
-- Never sacrifice clarity or coherence for exact word count"""
+MANDATORY WORD COUNT STRATEGY:
+Step 1: Calculate sections based on {target_words} words total
+Step 2: Allocate words per section proportionally
+Step 3: Write concisely to stay within allocation
+Step 4: Monitor your word count as you write
+Step 5: Complete your final sentence within the {int(target_words * 1.05)} word limit
+
+CONTENT DENSITY GUIDELINES:
+- {target_words} ≤ 100 words: Only the absolute core message and conclusion
+- 100 < {target_words} ≤ 300 words: Core points + key supporting facts
+- 300 < {target_words} ≤ 500 words: Main points with essential details
+- 500 < {target_words} ≤ 1000 words: Comprehensive with examples
+- {target_words} > 1000 words: Detailed coverage with full context
+
+CRITICAL ENFORCEMENT RULES:
+✓ MUST hit the target word count (±5% maximum)
+✓ NEVER exceed {int(target_words * 1.05)} words
+✓ NEVER truncate mid-sentence
+✓ Complete all thoughts properly
+✓ If approaching limit, conclude gracefully
+✓ Better to be slightly under than to truncate
+
+⚠️ FINAL WARNING: The {target_words} word target is MANDATORY, not optional. Respect it strictly."""
         else:
             word_guidance = """
 SUMMARY LENGTH: Comprehensive (no specific word target)
@@ -118,18 +129,112 @@ DOCUMENT TEXT:
 
 ---
 
-Generate a summary that:
-- Captures all essential information intelligently
-- Maintains the target word count (completing your final thought properly)
-- Is well-structured and easy to understand
-- Stands alone as a comprehensive overview"""
+🎯 MANDATORY REQUIREMENTS FOR YOUR SUMMARY:
+1. STRICTLY adhere to the target word count specified in the system instructions
+2. Capture all essential information with maximum information density
+3. Maintain well-structured, logical flow
+4. Complete all sentences properly - NO truncation
+5. End gracefully when approaching the word limit
+6. The word count target is MANDATORY and must be respected
+
+⚠️ REMINDER: The specified word count is NOT optional - it is a strict requirement."""
 
         if user_prompt:
-            base_message += f"\n\nADDITIONAL INSTRUCTIONS:\n{user_prompt}"
+            base_message += f"\n\n📋 ADDITIONAL USER INSTRUCTIONS:\n{user_prompt}\n\n⚠️ NOTE: If the user instructions specify a word count, that word count is MANDATORY and takes precedence over any parameter."
         
-        base_message += "\n\nBegin your summary now:"
+        base_message += "\n\n✍️ Begin your summary now (remember: strict adherence to word count target):"
         
         return base_message
+
+    def _build_consistent_system_prompt(self, target_words: int, output_format: str, attempt: int, min_acceptable: int, max_acceptable: int) -> str:
+        """Build system prompt with consistency-focused instructions based on attempt number."""
+        
+        base_instruction = """You are an expert document analyst with EXCEPTIONAL CONSISTENCY in following word count targets.
+
+Your core responsibilities:
+1. Extract and present ALL key information with perfect word count control
+2. NEVER exceed the specified word range under any circumstances
+3. Complete all sentences properly without truncation
+4. Maintain logical flow and coherent structure
+5. Use clear, professional language optimized for the target length"""
+
+        # Attempt-specific instructions for consistency
+        if attempt == 1:
+            consistency_note = f"""
+🎯 FIRST ATTEMPT - PRECISION TARGET: {target_words} words (acceptable: {min_acceptable}-{max_acceptable})
+
+CONSISTENCY RULES:
+✓ AIM for exactly {target_words} words
+✓ Acceptable range: {min_acceptable} to {max_acceptable} words
+✓ Plan your content structure BEFORE writing
+✓ Monitor word count as you write each section
+✓ STOP when you reach {max_acceptable} words maximum
+✓ Better to be slightly under than to exceed the limit"""
+
+        elif attempt == 2:
+            consistency_note = f"""
+🔄 RETRY ATTEMPT - STRICT ENFORCEMENT: {target_words} words (range: {min_acceptable}-{max_acceptable})
+
+PREVIOUS ATTEMPT WAS OUT OF RANGE - ADJUST YOUR APPROACH:
+✓ Be MORE PRECISE with word allocation per section
+✓ Use SHORTER sentences if previous attempt was too long
+✓ Add MORE detail if previous attempt was too short
+✓ CRITICAL: Stay within {min_acceptable}-{max_acceptable} words
+✓ End IMMEDIATELY when approaching {max_acceptable} words
+✓ This is your second chance - be more accurate"""
+
+        else:
+            consistency_note = f"""
+⚠️ FINAL ATTEMPT - EMERGENCY PRECISION: {target_words} words (STRICT: {min_acceptable}-{max_acceptable})
+
+PREVIOUS ATTEMPTS FAILED - MAXIMUM PRECISION REQUIRED:
+✓ CRITICAL: This is the last attempt for accurate word count
+✓ PLAN every word carefully to hit {target_words} target
+✓ Use EXACT word allocation strategy
+✓ COUNT words as you write each sentence
+✓ MANDATORY: Stop at {max_acceptable} words maximum
+✓ SUCCESS depends on staying within {min_acceptable}-{max_acceptable} range
+✓ NO excuses - hit the target precisely"""
+
+        format_instruction = f"""
+OUTPUT FORMAT: {output_format}
+- Use clear paragraph breaks and proper formatting
+- End with complete, conclusive statements
+- No mid-sentence truncation allowed
+- Professional tone throughout"""
+
+        return f"{base_instruction}\n\n{consistency_note}\n\n{format_instruction}"
+
+    def _calculate_consistent_token_budget(self, target_words: int) -> int:
+        """Calculate consistent, conservative token budget to prevent over-generation."""
+        
+        # More conservative multipliers for consistency
+        if target_words <= 100:
+            multiplier = 1.8  # 80% extra (was 2.2)
+        elif target_words <= 300:
+            multiplier = 1.9  # 90% extra (was 2.2)
+        elif target_words <= 500:
+            multiplier = 2.0  # 100% extra (was 2.2)
+        elif target_words <= 1000:
+            multiplier = 2.1  # 110% extra (was 2.5)
+        elif target_words <= 1500:
+            multiplier = 2.2  # 120% extra (was 2.5)
+        else:
+            multiplier = 2.4  # 140% extra (was 3.0)
+        
+        # Calculate base tokens more conservatively
+        base_tokens = calculate_max_tokens({"type": "words", "value": target_words})
+        token_budget = int(base_tokens * multiplier)
+        
+        # Cap at reasonable limits to prevent over-generation
+        if target_words <= 500:
+            token_budget = min(token_budget, 1200)
+        elif target_words <= 1000:
+            token_budget = min(token_budget, 2400)
+        else:
+            token_budget = min(token_budget, 6000)
+        
+        return token_budget
 
     # ---------------- Public API ----------------
     async def process_document_file(self, file_path: str, target_words: Optional[int] = None, output_format: str = "markdown", user_prompt: str | None = None) -> dict:
@@ -268,53 +373,87 @@ Generate a summary that:
 
 
     async def _direct_summarize(self, content: str, target_words: int, logger, user_prompt: str | None = None, output_format: str = "markdown") -> str:
-        """Direct summarization for small documents without chunking with intelligent token allocation."""
-        logger.info(f"[Mode5] Direct summarization to {target_words} words.")
+        """Direct summarization with consistent length enforcement and retry logic."""
+        logger.info(f"[Mode5] Direct summarization to {target_words} words with consistency enforcement.")
         
-        # Build prompts using new intelligent methods
-        system_prompt = self._build_system_prompt(target_words, output_format)
-        user_message = self._build_user_message(content, user_prompt)
+        # Define acceptable range (±8% for good balance between strictness and completion)
+        min_acceptable = int(target_words * 0.92)  # 8% below
+        max_acceptable = int(target_words * 1.08)  # 8% above
         
-        # Calculate token budget with EXTRA buffer to prevent truncation
-        # Give more tokens based on target size to ensure complete output
-        if target_words <= 500:
-            multiplier = 2.2  # 120% extra for small summaries
-        elif target_words <= 1500:
-            multiplier = 2.5  # 150% extra for medium summaries
-        else:
-            multiplier = 3.0  # 200% extra for large summaries
+        # Attempt summarization with retry logic for consistency
+        max_attempts = 3
+        attempt = 1
+        best_summary = None
+        best_deviation = float('inf')
         
-        # Calculate base tokens and apply multiplier
-        base_tokens = calculate_max_tokens({"type": "words", "value": target_words})
-        token_budget = int(base_tokens * multiplier)
-        
-        # Ensure we don't exceed models's limits
-        token_budget = min(token_budget, 8000)
-        
-        logger.info(
-            f"[Mode5] Direct summarization: target={target_words} words, "
-            f"token_budget={token_budget} (multiplier={multiplier}x)"
-        )
-        
-        # Generate summary with generous token budget
-        summary = await generate(
-            system_prompt=system_prompt,
-            user_message=user_message,
-            max_tokens=token_budget,
-            temperature=0.3,
-            top_p=0.9
-        )
-        
-        # Check for truncation (shouldn't happen with new buffer, but safety check)
-        from utils.validator import is_summary_truncated, complete_truncated_summary
-        if is_summary_truncated(summary):
-            logger.warning(
-                f"[Mode5] Summary appears truncated despite token buffer of {token_budget}. "
-                f"Attempting cleanup..."
+        while attempt <= max_attempts:
+            logger.info(f"[Mode5] Attempt {attempt}/{max_attempts} for target={target_words} words")
+            
+            # Build prompts with attempt-specific adjustments
+            system_prompt = self._build_consistent_system_prompt(target_words, output_format, attempt, min_acceptable, max_acceptable)
+            user_message = self._build_user_message(content, user_prompt)
+            
+            # Calculate conservative token budget for consistent output
+            token_budget = self._calculate_consistent_token_budget(target_words)
+            
+            logger.info(f"[Mode5] Attempt {attempt}: token_budget={token_budget}")
+            
+            # Generate with slightly different temperature for variety in retry attempts
+            temperature = 0.2 if attempt == 1 else (0.1 + attempt * 0.05)
+            
+            summary = await generate(
+                system_prompt=system_prompt,
+                user_message=user_message,
+                max_tokens=token_budget,
+                temperature=temperature,
+                top_p=0.9
             )
-            summary = complete_truncated_summary(summary)
+            
+            # Check for truncation
+            from utils.validator import is_summary_truncated, complete_truncated_summary
+            if is_summary_truncated(summary):
+                logger.warning(f"[Mode5] Attempt {attempt}: Summary truncated, attempting cleanup")
+                summary = complete_truncated_summary(summary)
+            
+            # Clean and validate
+            cleaned_summary = self._clean_summary_output(summary.strip())
+            actual_words = len(cleaned_summary.split())
+            deviation = abs(actual_words - target_words)
+            deviation_percent = (deviation / target_words * 100) if target_words > 0 else 0
+            
+            logger.info(
+                f"[Mode5] Attempt {attempt}: target={target_words}, actual={actual_words}, "
+                f"deviation={deviation_percent:.1f}% (range: {min_acceptable}-{max_acceptable})"
+            )
+            
+            # Check if this attempt is acceptable
+            if min_acceptable <= actual_words <= max_acceptable:
+                logger.info(f"[Mode5] ✅ SUCCESS on attempt {attempt}: Within acceptable range!")
+                return cleaned_summary
+            
+            # Track best attempt (closest to target)
+            if deviation < best_deviation:
+                best_deviation = deviation
+                best_summary = cleaned_summary
+            
+            # If too long, try with stricter prompt on next attempt
+            if actual_words > max_acceptable and attempt < max_attempts:
+                logger.warning(f"[Mode5] Attempt {attempt}: Too long ({actual_words} > {max_acceptable}), will retry with stricter prompt")
+            elif actual_words < min_acceptable and attempt < max_attempts:
+                logger.warning(f"[Mode5] Attempt {attempt}: Too short ({actual_words} < {min_acceptable}), will retry with expansion prompt")
+            
+            attempt += 1
         
-        return self._clean_summary_output(summary.strip())
+        # If all attempts failed, return the best one and log final warning
+        best_actual = len(best_summary.split())
+        final_deviation = (best_deviation / target_words * 100) if target_words > 0 else 0
+        
+        logger.warning(
+            f"[Mode5] ⚠️ All {max_attempts} attempts exceeded acceptable range. "
+            f"Using best attempt: target={target_words}, actual={best_actual}, deviation={final_deviation:.1f}%"
+        )
+        
+        return best_summary
     
     async def _chunked_summarize(self, content: str, target_words: int, logger, output_format: str = "markdown") -> str:
         """Chunked summarization for large documents with intelligent token allocation."""
@@ -333,54 +472,101 @@ Generate a summary that:
         merged = merge_partial_summaries(partials, original_words=len(content.split()))
         logger.info("[Mode5] Step 6: Merging partial summaries complete.")
         
-        # Final synthesis to target length with intelligent prompt
-        logger.info(f"[Mode5] Step 7: Final synthesis to {target_words} words.")
+        # Final synthesis with consistency enforcement
+        logger.info(f"[Mode5] Step 7: Final synthesis to {target_words} words with consistency control.")
         
-        # Build intelligent refinement prompt
-        system_prompt = self._build_system_prompt(target_words, output_format)
+        # Use same retry logic as direct summarization for chunked final step
+        min_acceptable = int(target_words * 0.92)
+        max_acceptable = int(target_words * 1.08)
         
-        refinement_prompt = f"""The following are summaries of different sections from a single document.
-Create a unified, coherent summary that:
-- Integrates all key points from the sections
-- Removes redundancy
-- Maintains logical flow
-- Targets approximately {target_words} words
-- COMPLETES all thoughts and ends with a proper conclusion
+        max_attempts = 2  # Fewer attempts for chunked since it's already processed
+        attempt = 1
+        best_summary = None
+        best_deviation = float('inf')
+        
+        while attempt <= max_attempts:
+            logger.info(f"[Mode5] Final synthesis attempt {attempt}/{max_attempts}")
+            
+            # Build consistent refinement prompt
+            system_prompt = self._build_consistent_system_prompt(target_words, output_format, attempt, min_acceptable, max_acceptable)
+            
+            refinement_prompt = f"""The following are summaries of different sections from a single document.
 
-SECTION SUMMARIES:
+MANDATORY TASK: Create a unified summary with EXACTLY {target_words} words (acceptable: {min_acceptable}-{max_acceptable})
+
+INTEGRATION REQUIREMENTS:
+- Combine all key points from sections below
+- Remove redundancy between sections
+- Maintain logical flow and coherence
+- CRITICAL: Stay within {min_acceptable}-{max_acceptable} words
+- End with complete conclusion (no truncation)
+
+SECTION SUMMARIES TO INTEGRATE:
 {merged.markdown}
 
-Create the final integrated summary now:"""
+Create the final integrated summary now (target: {target_words} words):"""
+            
+            # Conservative token budget for final synthesis
+            token_budget = self._calculate_consistent_token_budget(target_words)
+            
+            logger.info(f"[Mode5] Final synthesis attempt {attempt}: token_budget={token_budget}")
+            
+            # Vary temperature slightly between attempts
+            temperature = 0.2 if attempt == 1 else 0.15
+            
+            final_summary = await generate(
+                system_prompt=system_prompt,
+                user_message=refinement_prompt,
+                max_tokens=token_budget,
+                temperature=temperature,
+                top_p=0.9
+            )
+            
+            # Check for truncation
+            from utils.validator import is_summary_truncated, complete_truncated_summary
+            if is_summary_truncated(final_summary):
+                logger.warning(f"[Mode5] Final synthesis attempt {attempt}: truncated, cleaning up")
+                final_summary = complete_truncated_summary(final_summary)
+            
+            # Validate this attempt
+            cleaned_summary = self._clean_summary_output(final_summary.strip())
+            actual_words = len(cleaned_summary.split())
+            deviation = abs(actual_words - target_words)
+            deviation_percent = (deviation / target_words * 100) if target_words > 0 else 0
+            
+            logger.info(
+                f"[Mode5] Final synthesis attempt {attempt}: target={target_words}, actual={actual_words}, "
+                f"deviation={deviation_percent:.1f}% (range: {min_acceptable}-{max_acceptable})"
+            )
+            
+            # Check if acceptable
+            if min_acceptable <= actual_words <= max_acceptable:
+                logger.info(f"[Mode5] ✅ Final synthesis SUCCESS on attempt {attempt}")
+                return cleaned_summary
+            
+            # Track best attempt
+            if deviation < best_deviation:
+                best_deviation = deviation
+                best_summary = cleaned_summary
+            
+            if attempt < max_attempts:
+                if actual_words > max_acceptable:
+                    logger.warning(f"[Mode5] Final synthesis attempt {attempt}: Too long, will retry with stricter prompt")
+                else:
+                    logger.warning(f"[Mode5] Final synthesis attempt {attempt}: Too short, will retry with expansion")
+            
+            attempt += 1
         
-        # Use generous token budget for large summaries to prevent truncation
-        if target_words <= 500:
-            multiplier = 2.2
-        elif target_words <= 1500:
-            multiplier = 2.5
-        else:
-            multiplier = 3.0
+        # Return best attempt if all failed
+        best_actual = len(best_summary.split())
+        final_deviation = (best_deviation / target_words * 100) if target_words > 0 else 0
         
-        base_tokens = calculate_max_tokens({"type": "words", "value": target_words})
-        token_budget = int(base_tokens * multiplier)
-        token_budget = min(token_budget, 8000)
-        
-        logger.info(f"[Mode5] Final synthesis: target={target_words} words, token_budget={token_budget} (multiplier={multiplier}x)")
-        
-        final_summary = await generate(
-            system_prompt=system_prompt,
-            user_message=refinement_prompt,
-            max_tokens=token_budget,
-            temperature=0.3,
-            top_p=0.9
+        logger.warning(
+            f"[Mode5] ⚠️ Final synthesis: All attempts exceeded range. "
+            f"Using best: target={target_words}, actual={best_actual}, deviation={final_deviation:.1f}%"
         )
         
-        # Check for truncation and handle it
-        from utils.validator import is_summary_truncated, complete_truncated_summary
-        if is_summary_truncated(final_summary):
-            logger.warning(f"[Mode5] Final summary appears truncated, cleaning up...")
-            final_summary = complete_truncated_summary(final_summary)
-        
-        return self._clean_summary_output(final_summary.strip())
+        return best_summary
 
     def _clean_summary_output(self, text: str) -> str:
         """Remove unwanted introductory phrases from LLM output."""

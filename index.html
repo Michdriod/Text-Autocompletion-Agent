@@ -3,272 +3,524 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Mode Text Enrichment System - Dynamic Parameters</title>
-    <!-- Markdown renderer -->
+    <title>AI Text Enrichment Platform</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            /* Bluish-Purple Theme */
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-dark: #5a67d8;
+            --primary-light: #8b9ce8;
+            --accent-purple: #9f7aea;
+            --accent-blue: #4299e1;
+            
+            /* Mode-specific colors */
+            --mode1-color: #667eea;
+            --mode2-color: #5a67d8;
+            --mode3-color: #764ba2;
+            --mode4-color: #9f7aea;
+            --mode5-color: #4299e1;
+            --mode6-color: #7c3aed;
+            
+            /* Neutral colors */
+            --bg-primary: #0f0f1e;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --text-muted: #718096;
+            --border-color: #2d3748;
+            --success: #48bb78;
+            --error: #f56565;
+            --warning: #ed8936;
+        }
+        
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             line-height: 1.6;
-            background-color: #f8f9fa;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
         
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2.2em;
-        }
-        
-        .main-container {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        
-        /* Mode Selection */
-        .mode-selector {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .mode-btn {
-            padding: 12px 24px;
-            border: 2px solid #e0e0e0;
-            background: white;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s;
-            color: #666;
-        }
-        
-        .mode-btn.active {
-            background: #4CAF50;
-            color: white;
-            border-color: #4CAF50;
-        }
-        
-        .mode-btn:hover:not(.active) {
-            border-color: #4CAF50;
-            color: #4CAF50;
-        }
-        
-        /* Mode Descriptions */
-        .mode-description {
-            display: none;
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #4CAF50;
-        }
-        
-        .mode-description.active {
-            display: block;
-        }
-        
-        /* Input Areas */
-        .input-section {
-            margin: 20px 0;
-        }
-        
-        .input-group {
-            margin-bottom: 20px;
-        }
-        
-        .input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .input-group input, .input-group textarea, .input-group select {
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            font-family: inherit;
-            resize: vertical;
-            outline: none;
-            transition: border-color 0.3s;
+            height: 100%;
+            z-index: -1;
+            background: var(--bg-primary);
+            overflow: hidden;
         }
         
-        .input-group input:focus, .input-group textarea:focus, .input-group select:focus {
-            border-color: #4CAF50;
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
         }
         
-        .input-group textarea {
-            min-height: 120px;
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
         
-        /* Dynamic Parameters */
-        .parameters-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border: 1px solid #e0e0e0;
+        /* Navigation Bar */
+        .navbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
         }
         
-        .parameters-header {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.1em;
-        }
-        
-        .parameter-row {
+        .navbar-container {
+            max-width: 100%;
+            margin: 0 auto;
             display: flex;
-            gap: 15px;
-            align-items: end;
-            margin-bottom: 15px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+        }
+        
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 0;
+            flex-shrink: 0;
+            min-width: 180px;
+        }
+        
+        .navbar-logo {
+            font-size: 1.5rem;
+        }
+        
+        .navbar-title {
+            font-size: 1rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            white-space: nowrap;
+        }
+        
+        .navbar-nav {
+            display: flex;
+            gap: 0.125rem;
+            list-style: none;
+            flex: 1;
+            justify-content: space-evenly;
+            margin-left: 2rem;
+        }
+        
+        .nav-item {
+            position: relative;
+            flex: 1;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 1rem 0.25rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            text-align: center;
+            justify-content: center;
+            flex: 1;
+            white-space: nowrap;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .nav-link.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--mode-color);
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .nav-link[data-mode="mode_1"] { --mode-color: var(--mode1-color); }
+        .nav-link[data-mode="mode_2"] { --mode-color: var(--mode2-color); }
+        .nav-link[data-mode="mode_3"] { --mode-color: var(--mode3-color); }
+        .nav-link[data-mode="mode_4"] { --mode-color: var(--mode4-color); }
+        .nav-link[data-mode="mode_5"] { --mode-color: var(--mode5-color); }
+        .nav-link[data-mode="mode_6"] { --mode-color: var(--mode6-color); }
+        
+        .nav-icon {
+            display: none;
+        }
+        
+        .nav-item {
+            flex: 1;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+            height: calc(100vh - 70px);
+            overflow: hidden;
+        }
+        
+        /* Main Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 2rem;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        /* Card Styles */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            height: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.15);
+        }
+        
+        .card::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .card::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+        
+        .card::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        
+        .card::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-light);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .mode-description {
+            margin-top: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-light);
+        }
+        
+        .description-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        .card-badge {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .form-input::placeholder,
+        .form-textarea::placeholder {
+            color: var(--text-muted);
+        }
+        
+        /* Radio Group */
+        .radio-group {
+            display: flex;
+            gap: 1rem;
             flex-wrap: wrap;
         }
         
-        .parameter-group {
+        .radio-option {
             flex: 1;
             min-width: 150px;
         }
         
-        .parameter-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #555;
-            font-size: 14px;
+        .radio-option input[type="radio"] {
+            display: none;
         }
         
-        .parameter-group input, .parameter-group select {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
+        .radio-label {
+            display: block;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .radio-option input[type="radio"]:checked + .radio-label {
+            background: var(--primary-gradient);
+            border-color: var(--primary-light);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .radio-label:hover {
+            border-color: var(--primary-light);
+        }
+        
+        /* Slider */
+        .slider-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .slider-value {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .form-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: var(--bg-secondary);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        .form-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.5);
+        }
+        
+        .form-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.5);
         }
         
         /* Buttons */
-        .button-group {
-            display: flex;
-            gap: 15px;
-            margin: 20px 0;
-            flex-wrap: wrap;
-        }
-        
         .btn {
-            padding: 14px 28px;
+            padding: 0.875rem 2rem;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            transition: all 0.3s;
-            text-transform: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: inherit;
         }
         
         .btn-primary {
-            background: #4CAF50;
+            background: var(--primary-gradient);
             color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
         
         .btn-primary:hover {
-            background: #45a049;
             transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
         }
         
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-            border: 2px solid #ddd;
+        .btn-primary:active {
+            transform: translateY(0);
         }
         
-        .btn-secondary:hover {
-            background: #e0e0e0;
-            border-color: #ccc;
-        }
-        
-        .btn:disabled {
-            opacity: 0.6;
+        .btn-primary:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
             transform: none;
         }
         
-        .btn:disabled:hover {
-            transform: none;
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
         }
         
-        /* Results */
-        .results-section {
-            margin-top: 30px;
+        .btn-secondary:hover {
+            border-color: var(--primary-light);
+            background: var(--bg-card);
         }
         
-        .results-header {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.2em;
+        .btn-full {
+            width: 100%;
+            justify-content: center;
         }
         
-        .result-item {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #4CAF50;
-            margin-bottom: 15px;
+        /* Counter */
+        .counter {
+            margin-top: 0.5rem;
         }
         
-        .result-meta {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
+        .counter-toggle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: color 0.2s;
         }
         
-        .result-content {
-            font-size: 16px;
-            line-height: 1.6;
-            color: #333;
-            white-space: pre-wrap; /* Preserve line breaks and spacing from model output */
+        .counter-toggle:hover {
+            color: var(--primary-light);
         }
-        .result-content.formatted { white-space: normal; }
-        .result-content .doc-title { font-size: 1.15em; font-weight: 600; margin-bottom: 8px; }
-        .result-content .doc-heading { font-size: 0.95em; font-weight: 600; margin-top: 20px; letter-spacing: .5px; }
-        .result-content ul, .result-content ol { margin: 8px 0 16px 24px; padding: 0; }
-        .result-content li { margin: 2px 0; }
-        .result-content .kpi-block { background:#f1f5f4; padding:10px 14px; border-left:4px solid #4CAF50; border-radius:6px; margin:12px 0; }
-        .format-toggle { background:#f0f0f0; border:1px solid #d4d4d4; padding:4px 10px; border-radius:6px; font-size:12px; cursor:pointer; margin-top:8px; }
         
-        /* Loading States */
-        .loading {
+        .counter-arrow {
+            transition: transform 0.2s;
+            font-size: 0.7rem;
+        }
+        
+        .counter-arrow.open {
+            transform: rotate(180deg);
+        }
+        
+        .counter-details {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            padding-left: 0.5rem;
             display: none;
-            text-align: center;
-            padding: 20px;
-            color: #666;
         }
         
-        .loading.active {
+        .counter-details.show {
             display: block;
         }
         
+        /* Loading Spinner */
         .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #4CAF50;
+            border: 3px solid var(--bg-secondary);
+            border-top: 3px solid var(--primary-light);
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
         }
         
         @keyframes spin {
@@ -276,1049 +528,1215 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Error States */
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #c62828;
-            margin: 15px 0;
+        /* Results */
+        .results-container {
+            margin-top: 2rem;
             display: none;
+            animation: fadeIn 0.5s ease-out;
         }
         
-        .error.active {
+        .results-container.active {
             display: block;
         }
         
-        /* Word/Character Counters */
-        .counter {
-            font-size: 12px;
-            color: #666;
-            text-align: right;
-            margin-top: 5px;
+        .result-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
         }
         
-        .counter.warning {
-            color: #ff9800;
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
         }
         
-        .counter.error {
-            color: #f44336;
+        .result-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .result-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        .result-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .result-content h1,
+        .result-content h2,
+        .result-content h3 {
+            color: var(--text-primary);
+            margin: 1rem 0 0.5rem;
+        }
+        
+        .result-content p {
+            margin-bottom: 0.75rem;
+        }
+        
+        .result-content code {
+            background: var(--bg-card);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .result-content pre {
+            background: var(--bg-card);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        
+        /* Metadata Pills */
+        .metadata-toggle-wrapper {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .metadata {
+            display: none;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+        
+        .metadata.show {
+            display: flex;
+        }
+        
+        .metadata-item {
+            background: var(--bg-card);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .metadata-label {
+            color: var(--text-muted);
+        }
+        
+        .metadata-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        /* Status Messages */
+        .status-message {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .status-success {
+            background: rgba(72, 187, 120, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+        
+        .status-error {
+            background: rgba(245, 101, 101, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+        
+        .status-info {
+            background: rgba(66, 153, 225, 0.1);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+        }
+        
+        /* Tooltips */
+        [data-tooltip] {
+            position: relative;
+            cursor: help;
+        }
+        
+        [data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border-color);
+            z-index: 1000;
+        }
+        
+        [data-tooltip]:hover::after {
+            opacity: 1;
+        }
+        
+        /* File Upload Zone */
+        .file-upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: var(--bg-secondary);
+        }
+        
+        .file-upload-zone:hover {
+            border-color: var(--primary-light);
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .file-upload-zone.dragover {
+            border-color: var(--primary-light);
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .file-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .file-upload-text {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .file-upload-hint {
+            font-size: 0.85rem;
+            color: var(--text-muted);
         }
         
         /* Responsive Design */
+        @media (max-width: 1024px) {
+            .navbar-nav {
+                flex-wrap: wrap;
+                gap: 0.125rem;
+                max-width: 800px;
+            }
+            
+            .nav-link {
+                padding: 0.75rem 0.25rem;
+                font-size: 0.8rem;
+            }
+            
+            .content-grid {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .container {
+                height: auto;
+                padding: 1rem;
+            }
+            
+            .card {
+                height: auto;
+                max-height: 600px;
+            }
+        }
+        
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            
-            .main-container {
-                padding: 20px;
-            }
-            
-            .mode-selector {
+            .navbar-container {
                 flex-direction: column;
-                align-items: center;
+                padding: 0.5rem;
+                gap: 0.5rem;
             }
             
-            .mode-btn {
+            .navbar-nav {
                 width: 100%;
-                max-width: 300px;
+                justify-content: center;
+                flex-wrap: wrap;
+                max-width: none;
             }
             
-            .parameter-row {
-                flex-direction: column;
+            .nav-link {
+                flex: 1;
+                min-width: 120px;
+                justify-content: center;
+                padding: 0.625rem 0.25rem;
+                font-size: 0.75rem;
             }
             
-            .parameter-group {
-                min-width: 100%;
+            .nav-link span:not(.nav-icon) {
+                display: block;
+                line-height: 1.2;
             }
-            
-            .button-group {
-                flex-direction: column;
-            }
-            
-            .btn {
-                width: 100%;
-            }
+        }
+        
+        /* Hidden utility */
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
-    <h1>Multi-Type Text Enrichment System</h1>
+    <div class="bg-animation"></div>
     
-    <div class="main-container">
-        <!-- Mode Selection -->
-        <div class="mode-selector">
-            <button class="mode-btn active" data-mode="mode_1">Context-Aware Completion</button>
-            <button class="mode-btn" data-mode="mode_2">Structured Context Enrichment</button>
-            <button class="mode-btn" data-mode="mode_3">Flexible Input Refinement</button>
-            <button class="mode-btn" data-mode="mode_4">Description Generation</button>
-            <button class="mode-btn" data-mode="mode_5">Document Summarization</button>
-            <button class="mode-btn" data-mode="mode_6">Document Development</button>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <span class="navbar-logo"></span>
+                <span class="navbar-title">AI Text Enrichment</span>
+            </div>
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link active" data-mode="mode_1">
+                        <span class="nav-icon"></span>
+                        <span>Context-Aware Text Completion</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-mode="mode_2">
+                        <span class="nav-icon"></span>
+                        <span>Structured Text Enrichment</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-mode="mode_3">
+                        <span class="nav-icon"></span>
+                        <span>Text Refinement</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-mode="mode_4">
+                        <span class="nav-icon"></span>
+                        <span>Description Generator</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-mode="mode_5">
+                        <span class="nav-icon"></span>
+                        <span>Document/Text Summarization</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-mode="mode_6">
+                        <span class="nav-icon"></span>
+                        <span>Document Development</span>
+                    </a>
+                </li>
+            </ul>
         </div>
+    </nav>
+    
+    <div class="container">
         
-        <!-- Mode Descriptions -->
-        <div class="mode-description active" id="desc-mode_1">
-            <strong>Context-Aware Completion:</strong> Intelligently continues your text while maintaining style, tone, and context. Perfect for extending paragraphs, completing thoughts, or continuing narratives.
-        </div>
-        <div class="mode-description" id="desc-mode_2">
-            <strong>Structured Context Enrichment:</strong> Enhances your text based on a specific topic or header context. Enriches content while staying aligned with the provided theme. <span style="color:#4CAF50">Now accepts as little as 2 words.</span>
-        </div>
-        <div class="mode-description" id="desc-mode_3">
-            <strong>Flexible Input Refinement:</strong> Polishes messy, incomplete, or grammatically incorrect text. Improves clarity and structure while preserving original meaning.
-        </div>
-        <div class="mode-description" id="desc-mode_4">
-            <strong>Description Agent:</strong> Generates one or more natural language descriptions from a high-level context (header) and a structured JSON body. Useful for summarizing or describing structured data (e.g., transaction details).
-        </div>
-        <div class="mode-description" id="desc-mode_5">
-            <strong>Document Summarization:</strong> Analyzes and distills long-form content into concise, clear, and logically structured summaries. Perfect for quickly understanding the key points of a document. You can provide custom instructions (tone, focus, audience) and even specify the target word count directly in your prompt (e.g., "summarize in 150 words focusing on financial risks").
-        </div>
-        <div class="mode-description" id="desc-mode_6">
-            <strong>Document Development:</strong> Creates comprehensive and well-structured documents based on a topic (header) and detailed description (body). Ideal for generating business proposals, technical guides, or creative stories.
-        </div>
-        
-        <!-- Input Section -->
-        <div class="input-section">
-            <!-- Text Input (for modes 1, 2, 3) -->
-            <div class="input-group" id="text-input-group">
-                <label for="text-input">Input Text:</label>
-                <textarea id="text-input" placeholder="Enter your text here..."></textarea>
-                <div class="counter" id="text-counter">0 words, 0 characters</div>
-            </div>
-
-            <!-- File Upload for Mode 5 (Document Summarization) -->
-            <div class="input-group" id="file-upload-group" style="display: none;">
-                <label for="file-upload">Upload Document (PDF, DOCX, TXT):</label>
-                <input type="file" id="file-upload" accept=".pdf,.docx,.txt" />
-                <div style="font-size:12px;color:#555;margin-top:5px;">Max 10MB. Only PDF, DOCX, or TXT files are supported.</div>
-            </div>
-            <!-- Mode 5 Input Type Toggle -->
-            <div class="input-group" id="mode5-input-type-group" style="display:none;">
-                <label>Mode 5 Input Source:</label>
-                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:14px;">
-                    <label style="display:flex;align-items:center;gap:6px;">
-                        <input type="radio" name="mode5_source" value="file" checked>
-                        <span>📄 Upload File</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:6px;">
-                        <input type="radio" name="mode5_source" value="gdrive">
-                        <span>☁️ Google Drive</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:6px;">
-                        <input type="radio" name="mode5_source" value="raw">
-                        <span>📝 Paste Text</span>
-                    </label>
+        <!-- Main Content -->
+        <div class="content-grid">
+            <!-- Left Panel: Input -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="mode-description" id="modeDescription">
+                        <p class="description-text" id="descriptionText">Select a mode to get started</p>
+                    </div>
                 </div>
-            </div>
-            <!-- Google Drive URL Input for Mode 5 -->
-            <div class="input-group" id="mode5-gdrive-group" style="display:none;">
-                <label for="mode5-gdrive-url">Google Drive Public Link:</label>
-                <input 
-                    type="text" 
-                    id="mode5-gdrive-url" 
-                    placeholder="https://drive.google.com/file/d/YOUR_FILE_ID/view or Google Docs link"
-                    style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;font-size:14px;">
-                <div style="font-size:12px;color:#666;margin-top:6px;">
-                    💡 Supports Google Docs, Sheets, Slides, and uploaded files (PDF, DOCX, TXT)<br>
-                    🔓 File must be shared as "Anyone with the link can view"
+                
+                <!-- Modes 1, 3 - Text Only Input -->
+                <div id="modes-text-only-input">
+                    <div class="form-group" id="text-input-group">
+                        <label class="form-label">Your Text</label>
+                        <textarea 
+                            id="inputText" 
+                            class="form-textarea" 
+                            placeholder="Start typing your text here..."
+                        ></textarea>
+                        <div class="counter">
+                            <button class="counter-toggle" onclick="toggleCounter('text')">
+                                <span class="counter-arrow" id="text-arrow">▼</span>
+                                Stats
+                            </button>
+                            <div class="counter-details" id="text-counter-details">
+                                <span id="text-counter">0 words, 0 characters</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Mode 2 - Header Input -->
+                    <div class="form-group hidden" id="header-input-group">
+                        <label class="form-label">Header/Topic Context</label>
+                        <input 
+                            type="text" 
+                            id="headerInput" 
+                            class="form-input" 
+                            placeholder="Enter topic or theme for enrichment..."
+                        >
+                        <div class="counter">
+                            <button class="counter-toggle" onclick="toggleCounter('header')">
+                                <span class="counter-arrow" id="header-arrow">▼</span>
+                                Stats
+                            </button>
+                            <div class="counter-details" id="header-counter-details">
+                                <span id="header-counter">0 words, 0 characters</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Modes 4, 6 - Body Input -->
+                    <div class="form-group hidden" id="body-input-group">
+                        <label class="form-label" id="body-label">Body (Description or JSON)</label>
+                        <textarea 
+                            id="bodyInput" 
+                            class="form-textarea" 
+                            placeholder="Enter detailed description or JSON data here..."
+                        ></textarea>
+                        <div class="counter">
+                            <button class="counter-toggle" onclick="toggleCounter('body')">
+                                <span class="counter-arrow" id="body-arrow">▼</span>
+                                Stats
+                            </button>
+                            <div class="counter-details" id="body-counter-details">
+                                <span id="body-counter">0 words, 0 characters</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="parameters-section">
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="form-label">Minimum Words</label>
+                                <span class="slider-value" id="min-words-value">20</span>
+                            </div>
+                            <input 
+                                type="range" 
+                                id="minWords" 
+                                class="form-slider" 
+                                min="1" 
+                                max="500" 
+                                value="20"
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Output Length Limit (Optional)</label>
+                            <div class="radio-group" style="margin-bottom: 1rem;">
+                                <div class="radio-option">
+                                    <input type="radio" id="length-none" name="length-type" value="" checked>
+                                    <label for="length-none" class="radio-label">🚫 No Limit</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="length-words" name="length-type" value="words">
+                                    <label for="length-words" class="radio-label">📝 Words</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="length-chars" name="length-type" value="characters">
+                                    <label for="length-chars" class="radio-label">🔤 Characters</label>
+                                </div>
+                            </div>
+                            <input 
+                                type="number" 
+                                id="maxLengthValue" 
+                                class="form-input" 
+                                placeholder="Enter length when limit is selected..." 
+                                min="1" 
+                                max="5000"
+                                disabled
+                                style="width: 100%;"
+                            >
+                        </div>
+                    </div>
+                    
+                    <button id="processBtn" class="btn btn-primary btn-full">
+                        <span>✨</span>
+                        <span id="btn-text">Process Text</span>
+                    </button>
                 </div>
-            </div>
-            <!-- Raw Text Area for Mode 5 (pasted) -->
-            <div class="input-group" id="mode5-raw-text-group" style="display:none;">
-                <label for="mode5-raw-text">Paste Document Text:</label>
-                <textarea id="mode5-raw-text" placeholder="Paste full document text here for summarization..."></textarea>
-                <div class="counter" id="mode5-raw-counter">0 words, 0 characters</div>
-            </div>
-            <!-- Mode 5 target words (ratio removed) -->
-            <div class="input-group" id="mode5-target-group" style="display:none;">
-                <label>Summary Target Words (Optional):</label>
-                <input type="number" id="mode5-target-words" placeholder="Target words (e.g., 250)" min="20" style="flex:1;min-width:160px;" />
-                <div id="mode5-target-hint" style="font-size:12px;color:#555;margin-top:6px;">Enter a target or leave blank for auto behavior.</div>
-            </div>
-            <!-- Mode 5 custom prompt -->
-            <div class="input-group" id="mode5-prompt-group" style="display:none;">
-                <label for="mode5-user-prompt">Custom Prompt (Optional):</label>
-                <textarea id="mode5-user-prompt" placeholder="Example: Summarize in 180 words focusing on financial risks and key trends with a formal tone..." rows="3" maxlength="2000"></textarea>
-                <div class="counter" id="mode5-prompt-counter">0 / 2000 characters</div>
-                <div style="font-size:12px;color:#555;margin-top:6px;">
-                    💡 Tip: You can specify word count here (e.g., "summarize in 150 words"). If both prompt and target words are provided, the prompt takes priority.
+                
+                <!-- Mode 5 Input (Summarization) -->
+                <div id="mode-5-input" class="hidden">
+                    <div class="form-group">
+                        <label class="form-label">Input Source</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="input-file" name="input-source" value="file" checked>
+                                <label for="input-file" class="radio-label">📁 Upload File</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="input-gdrive" name="input-source" value="gdrive">
+                                <label for="input-gdrive" class="radio-label">☁️ Google Drive</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="input-text" name="input-source" value="text">
+                                <label for="input-text" class="radio-label">📝 Paste Text</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="file-input-group" class="form-group">
+                        <div class="file-upload-zone" id="fileDropZone">
+                            <span class="file-icon">📄</span>
+                            <div class="file-upload-text">Drop your file here or click to browse</div>
+                            <div class="file-upload-hint">Supports PDF, DOCX, TXT, XLSX (max 10MB)</div>
+                            <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.xlsx" style="display: none;">
+                        </div>
+                        <div id="file-name" class="counter" style="margin-top: 0.5rem;"></div>
+                    </div>
+                    
+                    <div id="gdrive-input-group" class="form-group hidden">
+                        <label class="form-label">Google Drive URL</label>
+                        <input 
+                            type="url" 
+                            id="gdriveUrl" 
+                            class="form-input" 
+                            placeholder="https://docs.google.com/document/d/..."
+                        >
+                        <div class="counter">
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">File must be publicly accessible</span>
+                        </div>
+                    </div>
+                    
+                    <div id="text-input-group-mode5" class="form-group hidden">
+                        <label class="form-label">Paste Your Document</label>
+                        <textarea 
+                            id="rawText" 
+                            class="form-textarea" 
+                            placeholder="Paste your document content here..."
+                            style="min-height: 200px;"
+                        ></textarea>
+                        <div class="counter">
+                            <button class="counter-toggle" onclick="toggleCounter('mode5-text')">
+                                <span class="counter-arrow" id="mode5-text-arrow">▼</span>
+                                Stats
+                            </button>
+                            <div class="counter-details" id="mode5-text-counter-details">
+                                <span id="mode5-text-counter">0 words</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Custom Instructions (Optional)</label>
+                        <textarea 
+                            id="userPrompt" 
+                            class="form-textarea" 
+                            placeholder='e.g., "Summarize in 150 words focusing on key findings"'
+                            style="min-height: 80px;"
+                        ></textarea>
+                        <div class="counter">
+                            <button class="counter-toggle" onclick="toggleCounter('prompt')">
+                                <span class="counter-arrow" id="prompt-arrow">▼</span>
+                                Stats
+                            </button>
+                            <div class="counter-details" id="prompt-counter-details">
+                                <span id="prompt-counter">0 / 2000 characters</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Target Words (Optional)</label>
+                        <input 
+                            type="number" 
+                            id="targetWords" 
+                            class="form-input" 
+                            placeholder="e.g., 200"
+                            min="10"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Output Format</label>
+                        <select id="outputFormat" class="form-select">
+                            <option value="markdown">Markdown</option>
+                            <option value="plain">Plain Text</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </div>
+                    
+                    <button id="summarizeBtn" class="btn btn-primary btn-full">
+                        <span>📄</span>
+                        <span>Summarize Document</span>
+                    </button>
                 </div>
-            </div>
-            <!-- Mode 5 output format selection -->
-            <div class="input-group" id="mode5-output-format-group" style="display:none;">
-                <label>Output Format:</label>
-                <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:14px;">
-                    <label style="display:flex;align-items:center;gap:6px;">
-                        <input type="radio" name="mode5_output_format" value="markdown" checked>
-                        <span>Markdown</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:6px;">
-                        <input type="radio" name="mode5_output_format" value="plain">
-                        <span>Plain Text</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:6px;">
-                        <input type="radio" name="mode5_output_format" value="both">
-                        <span>Both</span>
-                    </label>
-                </div>
-                <div style="font-size:12px;color:#555;margin-top:6px;">Plain removes formatting; Both returns both Markdown & plain.</div>
             </div>
             
-            <!-- Header Input (for modes 2, 4, 6) -->
-            <div class="input-group" id="header-input-group" style="display: none;">
-                <label for="header-input">Header/Topic Context:</label>
-                <input type="text" id="header-input" placeholder="Enter topic or context header...">
-                <div class="counter" id="header-counter">0 words, 0 characters</div>
-            </div>
-            
-            <!-- Body Input (for mode 4)
-            <div class="input-group" id="body-input-group" style="display: none;">
-                <label for="body-input">Body (JSON):</label>
-                <textarea id="body-input" placeholder='{"amount": 100, "currency": "USD", "merchant": "Store"}'></textarea>
-            </div> -->
-
-            <!-- Body Input (for modes 4, 6) -->
-            <div class="input-group" id="body-input-group" style="display: none;">
-                <label for="body-input">Body (Description or JSON):</label>
-                <textarea id="body-input" placeholder="Enter detailed description or JSON data here..."></textarea>
-                <div class="counter" id="body-counter">0 words, 0 characters</div>
-            </div>
-        </div>
-        
-        <!-- Dynamic Parameters Section (hidden for Mode 5) -->
-        <div class="parameters-section" id="parameters-section">
-            <div class="parameters-header">Dynamic Parameters</div>
-            <div class="parameter-row">
-                <div class="parameter-group">
-                    <label for="min-words">Minimum Input Words:</label>
-                    <input type="number" id="min-words" min="1" max="100" placeholder="Auto">
+            <!-- Right Panel: Results -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Results</h2>
                 </div>
-                <div class="parameter-group">
-                    <label for="max-length-type">Output Length Type:</label>
-                    <select id="max-length-type">
-                        <option value="">No Limit</option>
-                        <option value="characters">Characters</option>
-                        <option value="words">Words</option>
-                    </select>
+                
+                <div id="statusMessage"></div>
+                
+                <div id="resultsContainer" class="results-container">
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-title">Generated Output</div>
+                            <div class="result-meta">
+                                <span id="result-time"></span>
+                            </div>
+                        </div>
+                        <div class="result-content" id="outputResult"></div>
+                        <div class="metadata-toggle-wrapper" id="metadataWrapper" style="display: none;">
+                            <button class="counter-toggle" onclick="toggleMetadata()">
+                                <span class="counter-arrow" id="metadata-arrow">▼</span>
+                                Details
+                            </button>
+                            <div class="metadata" id="metadataContainer"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="parameter-group">
-                    <label for="max-length-value">Max Length Value:</label>
-                    <input type="number" id="max-length-value" min="1" max="2000" placeholder="200" disabled>
+                
+                <div id="emptyState" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">🎯</div>
+                    <div style="font-size: 1.1rem;">Your results will appear here</div>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem;">Configure your input and click the process button</div>
                 </div>
             </div>
-            <div id="length-hint" style="font-size:12px;color:#555;display:none;margin-top:-5px;margin-bottom:5px;"></div>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="button-group">
-            <button class="btn btn-primary" id="generate-btn">Generate Enrichment</button>
-            <button class="btn btn-secondary" id="regenerate-btn" style="display: none;">Generate Alternative</button>
-            <button class="btn btn-secondary" id="clear-results-btn">Clear Results</button>
-        </div>
-        
-        <!-- Loading State -->
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <div id="loading-message">Generating enriched content...</div>
-        </div>
-        
-        <!-- Error Display -->
-        <div class="error" id="error"></div>
-        
-        <!-- Results Section -->
-        <div class="results-section" id="results-section" style="display: none;">
-            <div class="results-header">Generated Results</div>
-            <div id="results-container"></div>
         </div>
     </div>
-
+    
     <script>
-        // Application state
+        // State Management
         let currentMode = 'mode_1';
-        let lastRequest = null;
-        const API_BASE = 'http://localhost:8000'; // Update this to your backend URL
-
-        // Per-mode action labels for buttons & loading states
-        const modeActionLabels = {
-            mode_1: {
-                primary: 'Continue Writing',
-                regenerate: 'Try Another Continuation',
-                loading: 'Generating continuation...',
-                use: 'Use This Continuation'
-            },
-            mode_2: {
-                primary: 'Enrich Content',
-                regenerate: 'Generate Alternative Enrichment',
-                loading: 'Enriching content...',
-                use: 'Use This Enrichment'
-            },
-            mode_3: {
-                primary: 'Refine Text',
-                regenerate: 'Refine Again', // (Regenerate disabled by config but kept for consistency)
-                loading: 'Refining text...',
-                use: 'Use This Refinement'
-            },
-            mode_4: {
-                primary: 'Generate Description',
-                regenerate: 'Generate Alternative Description',
-                loading: 'Generating description...',
-                use: 'Use This Description'
-            },
-            mode_5: {
-                primary: 'Summarize Document',
-                regenerate: 'Generate Alternative Summary',
-                loading: 'Summarizing document...',
-                use: 'Use This Summary'
-            },
-            mode_6: {
-                primary: 'Develop Document',
-                regenerate: 'Generate Alternative Draft',
-                loading: 'Developing document...',
-                use: 'Use This Draft'
-            }
-        };
+        let processing = false;
         
         // Mode configurations
         const modeConfigs = {
-            mode_1: {
-                requiresText: true,
-                requiresHeader: false,
-                requiresBody: false,
-                supportsRegenerate: true,
-                defaultMinWords: 20
-            },
-            mode_2: {
-                requiresText: true,
-                requiresHeader: true,
-                requiresBody: false,
-                supportsRegenerate: true,
-                defaultMinWords: 2
-            },
-            mode_3: {
-                requiresText: true,
-                requiresHeader: false,
-                requiresBody: false,
-                supportsRegenerate: false,
-                defaultMinWords: 0
-            },
-            mode_4: {
-                requiresText: false,
-                requiresHeader: true,
-                requiresBody: true,
-                supportsRegenerate: true,
-                defaultMinWords: 2
-            },
-            mode_5: {
-                requiresText: true,
-                requiresHeader: false,
-                requiresBody: false,
-                supportsRegenerate: true,
-                defaultMinWords: 20
-            },
-            mode_6: {
-                requiresText: false,
-                requiresHeader: true,
-                requiresBody: true,
-                supportsRegenerate: true,
-                defaultMinWords: 2
-            }
+            mode_1: { requiresText: true, requiresHeader: false, requiresBody: false, defaultMinWords: 2 },
+            mode_2: { requiresText: true, requiresHeader: true, requiresBody: false, defaultMinWords: 2 },
+            mode_3: { requiresText: true, requiresHeader: false, requiresBody: false, defaultMinWords: 0 },
+            mode_4: { requiresText: false, requiresHeader: true, requiresBody: true, defaultMinWords: 2 },
+            mode_5: { requiresText: false, requiresHeader: false, requiresBody: false, defaultMinWords: 20 },
+            mode_6: { requiresText: false, requiresHeader: true, requiresBody: true, defaultMinWords: 2 }
+        };
+
+        // Mode descriptions
+        const modeDescriptions = {
+            mode_1: "Context-Aware Text Completion - Intelligent text continuation based on context. Perfect for completing thoughts, sentences, or paragraphs with natural flow.",
+            mode_2: "Structured Text Enrichment - Text enhancement using header/topic context. Enriches your content by incorporating relevant themes and structured information.",
+            mode_3: "Text Refinement - Polish messy or incomplete text. Refines grammar, style, and clarity while preserving your original meaning and voice.",
+            mode_4: "Description Generator - Generate descriptions from structured data. Transforms JSON objects and structured information into readable, comprehensive descriptions.",
+            mode_5: "Document/Text Summarization - Generate summaries from documents, files, or text. Condense large content into concise, informative overviews with customizable length.",
+            mode_6: "Document Development - Develop comprehensive documents from user input. Create detailed content, reports, or articles based on your topics and requirements."
         };
         
         // DOM Elements
-        const modeButtons = document.querySelectorAll('.mode-btn');
-        const modeDescriptions = document.querySelectorAll('.mode-description');
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        // Input sections
+        const modesTextInput = document.getElementById('modes-text-only-input');
+        const mode5Input = document.getElementById('mode-5-input');
+        
+        // Individual input groups
         const textInputGroup = document.getElementById('text-input-group');
         const headerInputGroup = document.getElementById('header-input-group');
         const bodyInputGroup = document.getElementById('body-input-group');
-        const textInput = document.getElementById('text-input');
-        const headerInput = document.getElementById('header-input');
-        const bodyInput = document.getElementById('body-input');
-        const textCounter = document.getElementById('text-counter');
-        const headerCounter = document.getElementById('header-counter');
-        const bodyCounter = document.getElementById('body-counter');
-    const mode5InputTypeGroup = document.getElementById('mode5-input-type-group');
-    const mode5RawTextGroup = document.getElementById('mode5-raw-text-group');
-    const mode5RawText = document.getElementById('mode5-raw-text');
-    const mode5RawCounter = document.getElementById('mode5-raw-counter');
-    const mode5GdriveGroup = document.getElementById('mode5-gdrive-group');
-    const mode5GdriveUrl = document.getElementById('mode5-gdrive-url');
-    const mode5TargetGroup = document.getElementById('mode5-target-group');
-    const mode5TargetWords = document.getElementById('mode5-target-words');
-    const mode5PromptGroup = document.getElementById('mode5-prompt-group');
-    const mode5UserPrompt = document.getElementById('mode5-user-prompt');
-    const mode5PromptCounter = document.getElementById('mode5-prompt-counter');
-    const mode5OutputFormatGroup = document.getElementById('mode5-output-format-group');
-        const minWordsInput = document.getElementById('min-words');
-        const maxLengthType = document.getElementById('max-length-type');
-        const maxLengthValue = document.getElementById('max-length-value');
         const parametersSection = document.getElementById('parameters-section');
-        const generateBtn = document.getElementById('generate-btn');
-        const regenerateBtn = document.getElementById('regenerate-btn');
-        const loadingMessage = document.getElementById('loading-message');
-        const clearResultsBtn = document.getElementById('clear-results-btn');
-        const loading = document.getElementById('loading');
-        const error = document.getElementById('error');
-        const resultsSection = document.getElementById('results-section');
-        const resultsContainer = document.getElementById('results-container');
         
-        // Utility functions
-        function countWords(text) {
-            if (!text) return 0;
-            return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+        // Buttons
+        const processBtn = document.getElementById('processBtn');
+        const summarizeBtn = document.getElementById('summarizeBtn');
+        
+        // Results
+        const resultsContainer = document.getElementById('resultsContainer');
+        const emptyState = document.getElementById('emptyState');
+        const statusMessage = document.getElementById('statusMessage');
+        const outputResult = document.getElementById('outputResult');
+        const metadataContainer = document.getElementById('metadataContainer');
+        
+        // Mode switching
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const mode = link.dataset.mode;
+                switchMode(mode);
+            });
+        });
+        
+        function switchMode(mode) {
+            currentMode = mode;
+            const config = modeConfigs[mode];
+            
+            // Update active nav link
+            navLinks.forEach(link => link.classList.remove('active'));
+            document.querySelector(`.nav-link[data-mode="${mode}"]`).classList.add('active');
+            
+            // Update mode description
+            const descriptionText = document.getElementById('descriptionText');
+            descriptionText.textContent = modeDescriptions[mode];
+            
+            // Show/hide appropriate input sections
+            if (mode === 'mode_5') {
+                // Mode 5: Special summarization interface
+                modesTextInput.classList.add('hidden');
+                mode5Input.classList.remove('hidden');
+            } else {
+                // Modes 1-4, 6: Use standard inputs
+                modesTextInput.classList.remove('hidden');
+                mode5Input.classList.add('hidden');
+                
+                // Show/hide based on requirements
+                textInputGroup.classList.toggle('hidden', !config.requiresText);
+                headerInputGroup.classList.toggle('hidden', !config.requiresHeader);
+                bodyInputGroup.classList.toggle('hidden', !config.requiresBody);
+                parametersSection.classList.toggle('hidden', false);
+                
+                // Update placeholders
+                const headerInput = document.getElementById('headerInput');
+                const bodyInput = document.getElementById('bodyInput');
+                const bodyLabel = document.getElementById('body-label');
+                
+                if (mode === 'mode_2') {
+                    headerInput.placeholder = 'Enter topic or theme for enrichment...';
+                } else if (mode === 'mode_4') {
+                    headerInput.placeholder = 'Enter high-level context for description generation...';
+                    bodyInput.placeholder = 'Enter structured JSON data (e.g., {"key": "value"})...';
+                    bodyLabel.textContent = 'Body (JSON)';
+                } else if (mode === 'mode_6') {
+                    headerInput.placeholder = 'Enter topic or subject for document generation...';
+                    bodyInput.placeholder = 'Enter detailed description or requirements...';
+                    bodyLabel.textContent = 'Body (Description)';
+                }
+                
+                // Update min words default
+                minWords.value = config.defaultMinWords;
+                document.getElementById('min-words-value').textContent = config.defaultMinWords;
+                
+                // Update button text
+                const btnTexts = {
+                    'mode_1': 'Complete Text',
+                    'mode_2': 'Enrich Content',
+                    'mode_3': 'Refine Text',
+                    'mode_4': 'Generate Description',
+                    'mode_6': 'Generate Document'
+                };
+                document.getElementById('btn-text').textContent = btnTexts[mode] || 'Process';
+            }
+            
+            // Clear results
+            clearResults();
         }
         
-        function countCharacters(text) {
-            return text ? text.trim().length : 0;
-        }
-        
-        function updateCounter(element, text) {
-            const words = countWords(text);
-            const chars = countCharacters(text);
-            element.textContent = `${words} words, ${chars} characters`;
+        // Toggle counter dropdown
+        function toggleCounter(counterId) {
+            const arrow = document.getElementById(`${counterId}-arrow`);
+            const details = document.getElementById(`${counterId}-counter-details`);
             
-            // Update counter styling based on requirements
-            const config = modeConfigs[currentMode];
-            const minWords = parseInt(minWordsInput.value) || config.defaultMinWords;
-            
-            element.classList.remove('warning', 'error');
-            if (words < minWords) {
-                element.classList.add('error');
-            } else if (words < minWords + 5) {
-                element.classList.add('warning');
+            if (details.classList.contains('show')) {
+                details.classList.remove('show');
+                arrow.classList.remove('open');
+            } else {
+                details.classList.add('show');
+                arrow.classList.add('open');
             }
         }
         
-        function updatePromptCounter(element, text) {
+        // Toggle metadata dropdown
+        function toggleMetadata() {
+            const arrow = document.getElementById('metadata-arrow');
+            const metadata = document.getElementById('metadataContainer');
+            
+            if (metadata.classList.contains('show')) {
+                metadata.classList.remove('show');
+                arrow.classList.remove('open');
+            } else {
+                metadata.classList.add('show');
+                arrow.classList.add('open');
+            }
+        }
+        
+        // Text counters
+        const inputText = document.getElementById('inputText');
+        const textCounter = document.getElementById('text-counter');
+        const headerInput = document.getElementById('headerInput');
+        const headerCounter = document.getElementById('header-counter');
+        const bodyInput = document.getElementById('bodyInput');
+        const bodyCounter = document.getElementById('body-counter');
+        
+        function updateCounter(element, counterElement) {
+            const text = element.value;
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
             const chars = text.length;
-            const maxChars = 2000;
-            element.textContent = `${chars} / ${maxChars} characters`;
+            counterElement.textContent = `${words} words, ${chars} characters`;
             
-            element.classList.remove('warning', 'error');
-            if (chars > maxChars) {
-                element.classList.add('error');
-            } else if (chars > maxChars - 100) {
-                element.classList.add('warning');
+            // Visual feedback based on minimum word requirement
+            const config = modeConfigs[currentMode];
+            const minWordsRequired = parseInt(minWords.value) || config.defaultMinWords;
+            
+            // Reset styles
+            counterElement.style.color = 'var(--text-muted)';
+            
+            // Only show warnings for fields that are required in current mode
+            const isTextRequired = element.id === 'inputText' && config.requiresText;
+            const isHeaderRequired = element.id === 'headerInput' && config.requiresHeader;
+            
+            if ((isTextRequired || isHeaderRequired) && words > 0) {
+                if (words < minWordsRequired) {
+                    counterElement.style.color = 'var(--error)';
+                } else if (words < minWordsRequired + 5) {
+                    counterElement.style.color = 'var(--warning)';
+                } else {
+                    counterElement.style.color = 'var(--success)';
+                }
             }
         }
         
-        function showError(message) {
-            error.textContent = message;
-            error.classList.add('active');
-            setTimeout(() => {
-                error.classList.remove('active');
-            }, 5000);
-        }
+        inputText.addEventListener('input', () => updateCounter(inputText, textCounter));
+        headerInput.addEventListener('input', () => updateCounter(headerInput, headerCounter));
+        bodyInput.addEventListener('input', () => updateCounter(bodyInput, bodyCounter));
         
-        function addResult(content, mode, isRegeneration = false) {
-            const resultItem = document.createElement('div');
-            resultItem.className = 'result-item';
-            
-            const meta = document.createElement('div');
-            meta.className = 'result-meta';
-            let baseMeta = `Mode: ${mode.replace('_', ' ').toUpperCase()}${isRegeneration ? ' (Alternative)' : ''} • Generated: ${new Date().toLocaleTimeString()}`;
-            // Inject Mode 5 resolved target metadata if available
-            if (mode === 'mode_5' && typeof content === 'object' && content !== null) {
-                const rm = content.meta || content.length_enforcement || content.ingest || {};
-            }
-            meta.textContent = baseMeta;
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'result-content';
-            let formattedHtml = '';
-            if (mode === 'mode_5' && window.marked) {
-                let mdSource = '';
-                if (typeof content === 'object' && content !== null) {
-                    if (content.markdown_summary) mdSource = content.markdown_summary;
-                    else if (content.plain_summary) mdSource = content.plain_summary;
-                } else {
-                    mdSource = content || '';
-                }
-                formattedHtml = marked.parse(mdSource || '');
-                contentDiv.classList.add('formatted');
-                contentDiv.innerHTML = formattedHtml;
-            } else {
-                formattedHtml = formatStructured(typeof content === 'string' ? content : (content.markdown_summary || content.plain_summary || ''));
-                if(formattedHtml){
-                    contentDiv.classList.add('formatted');
-                    contentDiv.innerHTML = formattedHtml;
-                } else {
-                    contentDiv.textContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
-                }
-            }
-
-            // Toggle button for raw / formatted view
-            const toggleBtn = document.createElement('button');
-            toggleBtn.textContent = 'Toggle Raw/Formatted';
-            toggleBtn.className = 'format-toggle';
-            let showingFormatted = true;
-            toggleBtn.onclick = () => {
-                if(showingFormatted){
-                    contentDiv.classList.remove('formatted');
-                    let rawText = '';
-                    if (typeof content === 'object' && content !== null) {
-                        rawText = content.markdown_summary || content.plain_summary || JSON.stringify(content, null, 2);
-                    } else rawText = content;
-                    contentDiv.textContent = rawText; // raw
-                } else {
-                    if (mode === 'mode_5' && window.marked) {
-                        let mdSource = '';
-                        if (typeof content === 'object' && content !== null) {
-                            mdSource = content.markdown_summary || content.plain_summary || '';
-                        } else mdSource = content || '';
-                        contentDiv.classList.add('formatted');
-                        contentDiv.innerHTML = marked.parse(mdSource || '');
-                    } else {
-                        contentDiv.classList.add('formatted');
-                        contentDiv.innerHTML = formattedHtml;
-                    }
-                }
-                showingFormatted = !showingFormatted;
-            };
-            
-            // Add "Use This Suggestion" button
-            const useBtn = document.createElement('button');
-            useBtn.className = 'btn btn-secondary';
-            const labelCfg = modeActionLabels[mode] || { use: 'Use This Result' };
-            useBtn.textContent = labelCfg.use;
-            useBtn.onclick = () => {
-                alert('Suggestion selected! You can now use this text elsewhere.');
-            };
-            
-            resultItem.appendChild(meta);
-            resultItem.appendChild(contentDiv);
-            resultItem.appendChild(toggleBtn);
-            resultItem.appendChild(useBtn);
-            
-            if (isRegeneration) {
-                resultsContainer.insertBefore(resultItem, resultsContainer.firstChild);
-            } else {
-                resultsContainer.appendChild(resultItem);
-            }
-            
-            resultsSection.style.display = 'block';
-        }
-
-        // Mode 5 target hint logic
-        const mode5TargetHint = document.getElementById('mode5-target-hint');
-        function updateMode5TargetHint() {
-            if (currentMode !== 'mode_5') return;
-            let words = 0;
-            // If raw source selected use pasted; else attempt estimate from main text input (if visible)
-            const sourceType = document.querySelector('input[name="mode5_source"]:checked')?.value || 'file';
-            if (sourceType === 'raw') {
-                words = countWords(mode5RawText.value);
-            } else {
-                // file case: can't know until upload
-            }
-            const val = mode5TargetWords.value.trim();
-            if (val) {
-                const target = parseInt(val);
-                if (words > 0 && target > words) {
-                    mode5TargetHint.textContent = `Requested ${target} exceeds document length (${words}); will cap to ${words}.`;
-                } else {
-                    mode5TargetHint.textContent = `Will enforce exactly ${target} words.`;
-                }
-            } else {
-                if (words === 0) {
-                    mode5TargetHint.textContent = 'No target entered: small docs (<=500 words) default to 100; larger docs auto 20% after processing.';
-                } else if (words <= 500) {
-                    mode5TargetHint.textContent = `No target: will default to 100 words (document has ${words}).`;
-                } else {
-                    const autoTarget = Math.max(1, Math.round(words * 0.20));
-                    mode5TargetHint.textContent = `No target: will auto-summarize to 20% ≈ ${autoTarget} words (document has ${words}).`;
-                }
-            }
-        }
-
-        mode5TargetWords.addEventListener('input', updateMode5TargetHint);
-        mode5RawText.addEventListener('input', () => { updateCounter(mode5RawCounter, mode5RawText.value); updateMode5TargetHint(); });
-        mode5UserPrompt.addEventListener('input', () => { updatePromptCounter(mode5PromptCounter, mode5UserPrompt.value); });
-        document.addEventListener('change', (e)=>{
-            if (e.target && e.target.name === 'mode5_source') {
-                updateUIForMode(); // Show/hide appropriate input groups
-                updateMode5TargetHint();
-            }
+        // Parameter controls
+        const minWords = document.getElementById('minWords');
+        const lengthTypeRadios = document.querySelectorAll('input[name="length-type"]');
+        const maxLengthValue = document.getElementById('maxLengthValue');
+        
+        minWords.addEventListener('input', () => {
+            document.getElementById('min-words-value').textContent = minWords.value;
         });
-
-        function escapeHtml(str){
-            return str
-                .replace(/&/g,'&amp;')
-                .replace(/</g,'&lt;')
-                .replace(/>/g,'&gt;')
-                .replace(/"/g,'&quot;')
-                .replace(/'/g,'&#39;');
-        }
-
-        // Attempt to structure professional doc outputs (esp. Mode 6)
-        function formatStructured(raw){
-            if(!raw || raw.length < 40) return '';
-            const lines = raw.split(/\n+/).map(l=>l.trim()).filter(l=>l.length>0);
-            if(lines.length < 3) return '';
-            const headingSet = new Set([
-                'EXECUTIVE SUMMARY','INTRODUCTION','OBJECTIVES','GOALS','STRATEGY','IMPLEMENTATION PLAN',
-                'KPIS & MEASUREMENT','RISKS & MITIGATION','RESOURCE & BUDGET','TIMELINE','CONCLUSION'
-            ]);
-            // Heuristic: first line that is not all-caps heading is title
-            let idx=0; let title='';
-            if(lines[0] && !headingSet.has(lines[0].toUpperCase())){
-                title = lines[0]; idx=1;
-            }
-            const blocks=[]; let current=null;
-            function pushCurrent(){ if(current){ blocks.push(current); current=null; } }
-            for(let i=idx;i<lines.length;i++){
-                const ln = lines[i];
-                const up = ln.toUpperCase();
-                if(headingSet.has(up)){
-                    pushCurrent();
-                    current = { heading: up, lines: [] };
-                } else {
-                    if(!current){ current = { heading: null, lines: [] }; }
-                    current.lines.push(ln);
-                }
-            }
-            pushCurrent();
-            if(blocks.length === 0) return '';
-            // Build HTML
-            let html='';
-            if(title) html += `<div class="doc-title">${escapeHtml(title)}</div>`;
-            for(const b of blocks){
-                if(b.heading){
-                    html += `<div class="doc-heading">${escapeHtml(b.heading)}</div>`;
-                }
-                // Attempt list grouping
-                const paragraphBuffer=[]; let listBuffer=[]; let listType=null; function flushList(){ if(listBuffer.length){ html += listType==='ol'?'<ol>':'<ul>'; listBuffer.forEach(li=> html += `<li>${escapeHtml(li)}</li>`); html += listType==='ol'?'</ol>':'</ul>'; listBuffer=[]; listType=null; } }
-                for(const line of b.lines){
-                    const numMatch = line.match(/^([0-9]{1,2})\.\s+(.*)$/);
-                    const bulletMatch = line.match(/^[-•*]\s+(.*)$/);
-                    if(numMatch){
-                        if(listType && listType!=='ol') flushList();
-                        listType='ol';
-                        listBuffer.push(numMatch[2]);
-                    } else if(bulletMatch){
-                        if(listType && listType!=='ul') flushList();
-                        listType='ul';
-                        listBuffer.push(bulletMatch[1]);
-                    } else {
-                        flushList();
-                        paragraphBuffer.push(line);
-                    }
-                }
-                flushList();
-                if(paragraphBuffer.length){
-                    paragraphBuffer.forEach(p=>{
-                        if(b.heading && b.heading.includes('KPI')){
-                            html += `<div class="kpi-block">${escapeHtml(p)}</div>`;
-                        } else {
-                            html += `<p>${escapeHtml(p)}</p>`;
-                        }
-                    });
-                }
-            }
-            return html;
-        }
         
-        // Event listeners
-        modeButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Update active mode button
-                modeButtons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                
-                // Update active mode description
-                modeDescriptions.forEach(desc => desc.classList.remove('active'));
-                document.getElementById(`desc-${button.dataset.mode}`).classList.add('active');
-                
-                // Update current mode
-                currentMode = button.dataset.mode;
-                
-                // Update UI based on mode requirements
-                updateUIForMode();
-                
-                // Update counters
-                updateCounter(textCounter, textInput.value);
-                updateCounter(headerCounter, headerInput.value);
-                
-                // Update minimum words placeholder
-                minWordsInput.placeholder = modeConfigs[currentMode].defaultMinWords.toString();
-                
-                // Hide regenerate button when switching modes
-                regenerateBtn.style.display = 'none';
-                lastRequest = null;
-
-                // Update action labels
-                updateActionLabels();
+        // Enable/disable max length input based on type selection
+        lengthTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const hasLimit = radio.value !== '';
+                maxLengthValue.disabled = !hasLimit;
+                if (hasLimit) {
+                    maxLengthValue.placeholder = radio.value === 'words' ? 'e.g., 200' : 'e.g., 1000';
+                    maxLengthValue.focus();
+                } else {
+                    maxLengthValue.value = '';
+                }
             });
         });
         
-        // Clear results button handler
-        document.getElementById('clear-results-btn').addEventListener('click', () => {
-            resultsContainer.innerHTML = '';
-            resultsSection.style.display = 'none';
-            regenerateBtn.style.display = 'none';
-            lastRequest = null;
-        });
-
-        // Function to update UI for mode
-        function updateUIForMode() {
-            const config = modeConfigs[currentMode];
-            // Show/hide input groups based on mode requirements
-            if (currentMode === 'mode_5') {
-                textInputGroup.style.display = 'none';
-                mode5InputTypeGroup.style.display = 'block';
-                // Determine selected source
-                const selectedSource = document.querySelector('input[name="mode5_source"]:checked')?.value || 'file';
-                if (selectedSource === 'file') {
-                    fileUploadGroup.style.display = 'block';
-                    mode5GdriveGroup.style.display = 'none';
-                    mode5RawTextGroup.style.display = 'none';
-                } else if (selectedSource === 'gdrive') {
-                    fileUploadGroup.style.display = 'none';
-                    mode5GdriveGroup.style.display = 'block';
-                    mode5RawTextGroup.style.display = 'none';
-                } else {
-                    fileUploadGroup.style.display = 'none';
-                    mode5GdriveGroup.style.display = 'none';
-                    mode5RawTextGroup.style.display = 'block';
-                }
-                mode5TargetGroup.style.display = 'block';
-                mode5PromptGroup.style.display = 'block';
-                if(mode5OutputFormatGroup) mode5OutputFormatGroup.style.display = 'block';
-                headerInputGroup.style.display = 'none';
-                bodyInputGroup.style.display = 'none';
-                parametersSection.style.display = 'none';
-            } else {
-                textInputGroup.style.display = config.requiresText ? 'block' : 'none';
-                fileUploadGroup.style.display = 'none';
-                mode5InputTypeGroup.style.display = 'none';
-                mode5GdriveGroup.style.display = 'none';
-                mode5RawTextGroup.style.display = 'none';
-                mode5TargetGroup.style.display = 'none';
-                mode5PromptGroup.style.display = 'none';
-                if(mode5OutputFormatGroup) mode5OutputFormatGroup.style.display = 'none';
-                headerInputGroup.style.display = config.requiresHeader ? 'block' : 'none';
-                bodyInputGroup.style.display = config.requiresBody ? 'block' : 'none';
-                parametersSection.style.display = 'block';
-            }
-            
-            // // Update labels based on mode
-            // if (currentMode === 'mode_4') {
-            //     headerInput.placeholder = 'Enter high-level context for description generation...';
-            // } else if (currentMode === 'mode_2') {
-            //     headerInput.placeholder = 'Enter topic or theme for enrichment...';
-            // }
-
-            // Update placeholders based on mode
-            if (currentMode === 'mode_4') {
-                headerInput.placeholder = 'Enter high-level context for description generation...';
-                bodyInput.placeholder = 'Enter structured JSON data (e.g., {"key": "value"})...';
-            } else if (currentMode === 'mode_6') {
-                headerInput.placeholder = 'Enter high-level context for document generation...';
-                bodyInput.placeholder = 'Enter a detailed description for the document...';
-            } else if (currentMode === 'mode_2') {
-                headerInput.placeholder = 'Enter topic or theme for enrichment...';
-            }
-        }
-
-        function updateActionLabels(){
-            const labels = modeActionLabels[currentMode];
-            if(!labels) return;
-            generateBtn.textContent = labels.primary;
-            // Hide regenerate for mode 5 (file upload)
-            if(currentMode === 'mode_5') {
-                regenerateBtn.style.display = 'none';
-            } else {
-                regenerateBtn.textContent = labels.regenerate;
-            }
-        }
+        // Mode 5: Input source switching
+        const inputSourceRadios = document.querySelectorAll('input[name="input-source"]');
+        const fileInputGroup = document.getElementById('file-input-group');
+        const gdriveInputGroup = document.getElementById('gdrive-input-group');
+        const textInputGroupMode5 = document.getElementById('text-input-group-mode5');
         
-        // Input event listeners for counters
-        textInput.addEventListener('input', () => {
-            updateCounter(textCounter, textInput.value);
-        });
-        
-        headerInput.addEventListener('input', () => {
-            updateCounter(headerCounter, headerInput.value);
-        });
-        bodyInput.addEventListener('input', () => {
-            updateCounter(bodyCounter, bodyInput.value);
-        });
-        if(mode5RawText){
-            mode5RawText.addEventListener('input', ()=>{
-                updateCounter(mode5RawCounter, mode5RawText.value);
+        inputSourceRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const source = radio.value;
+                fileInputGroup.classList.toggle('hidden', source !== 'file');
+                gdriveInputGroup.classList.toggle('hidden', source !== 'gdrive');
+                textInputGroupMode5.classList.toggle('hidden', source !== 'text');
             });
-        }
-        // Listen for Mode 5 input source change
-        document.addEventListener('change', (e)=>{
-            if(e.target && e.target.name === 'mode5_source'){
-                if(currentMode === 'mode_5'){
-                    updateUIForMode();
-                }
+        });
+        
+        // File upload
+        const fileDropZone = document.getElementById('fileDropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('file-name');
+        
+        fileDropZone.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileName.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
             }
         });
         
-        // Max length type change handler
-        maxLengthType.addEventListener('change', () => {
-            const hasLimit = maxLengthType.value !== '';
-            maxLengthValue.disabled = !hasLimit;
-            if (!hasLimit) {
-                maxLengthValue.value = '';
-                updateLengthHint();
+        // Drag and drop
+        fileDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileDropZone.classList.add('dragover');
+        });
+        
+        fileDropZone.addEventListener('dragleave', () => {
+            fileDropZone.classList.remove('dragover');
+        });
+        
+        fileDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileDropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                const file = e.dataTransfer.files[0];
+                fileName.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            }
+        });
+        
+        // Mode 5: Text counter
+        const rawText = document.getElementById('rawText');
+        const mode5TextCounter = document.getElementById('mode5-text-counter');
+        
+        rawText.addEventListener('input', () => {
+            const words = rawText.value.trim().split(/\s+/).filter(w => w.length > 0).length;
+            mode5TextCounter.textContent = `${words} words`;
+        });
+        
+        // Mode 5: Prompt counter
+        const userPrompt = document.getElementById('userPrompt');
+        const promptCounter = document.getElementById('prompt-counter');
+        
+        userPrompt.addEventListener('input', () => {
+            const length = userPrompt.value.length;
+            promptCounter.textContent = `${length} / 2000 characters`;
+            if (length > 2000) {
+                promptCounter.style.color = 'var(--error)';
             } else {
-                maxLengthValue.placeholder = maxLengthType.value === 'words' ? '50' : '200';
-                updateLengthHint();
+                promptCounter.style.color = 'var(--text-muted)';
             }
         });
-        maxLengthValue.addEventListener('input', () => updateLengthHint());
-
-        function estimateTokens(type, value){
-            if(!type || !value) return null;
-            const v = parseInt(value);
-            if(isNaN(v) || v <= 0) return null;
-            if(type === 'characters'){
-                // ~4 chars per token heuristic
-                return Math.max(10, Math.round(v / 4));
-            }
-            // words: ~0.75 words per token => tokens ≈ words / 0.75
-            return Math.max(10, Math.round(v / 0.75));
-        }
-
-        function updateLengthHint(){
-            const hintEl = document.getElementById('length-hint');
-            const type = maxLengthType.value;
-            const value = maxLengthValue.value;
-            if(!type || !value){
-                hintEl.style.display = 'none';
-                hintEl.textContent = '';
-                return;
-            }
-            const tokens = estimateTokens(type, value);
-            hintEl.style.display = 'block';
-            hintEl.textContent = `The model will target <= ${value} ${type} (≈ ${tokens} tokens). Output is generated to fit; no post trimming.`;
-        }
         
-        // Generate button handler
-        generateBtn.addEventListener('click', async () => {
-            await generateCompletion(false);
-        });
-        
-        // Regenerate button handler
-        regenerateBtn.addEventListener('click', async () => {
-            await generateCompletion(true);
-        });
-        
-        // Clear results button handler
-        clearResultsBtn.addEventListener('click', () => {
-            resultsContainer.innerHTML = '';
-            resultsSection.style.display = 'none';
-            regenerateBtn.style.display = 'none';
-            lastRequest = null;
-        });
-        
-        async function generateCompletion(isRegeneration = false) {
+        // Process Modes 1-4, 6
+        processBtn.addEventListener('click', async () => {
+            if (processing) return;
+            
             const config = modeConfigs[currentMode];
-            // Mode 5: file upload
-            if (currentMode === 'mode_5') {
-                const source = document.querySelector('input[name="mode5_source"]:checked')?.value || 'file';
-                loading.classList.add('active');
-                generateBtn.disabled = true;
-                const labels = modeActionLabels[currentMode];
-                if(labels){
-                    loadingMessage.textContent = labels.loading;
-                }
-                try {
-                    const formData = new FormData();
-                    if(source === 'file'){
-                        const file = fileUpload.files[0];
-                        if (!file) {
-                            showError('Please select a document file to summarize.');
-                            throw new Error('Validation failed');
-                        }
-                        if (!['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
-                            showError('Unsupported file type. Please upload a PDF, DOCX, or TXT file.');
-                            throw new Error('Validation failed');
-                        }
-                        if (file.size > 10 * 1024 * 1024) {
-                            showError('File is too large. Max 10MB allowed.');
-                            throw new Error('Validation failed');
-                        }
-                        formData.append('file', file);
-                    } else if(source === 'gdrive'){
-                        const gdriveUrl = mode5GdriveUrl.value.trim();
-                        if(!gdriveUrl){
-                            showError('Please enter a Google Drive URL.');
-                            throw new Error('Validation failed');
-                        }
-                        // Basic URL validation
-                        if(!gdriveUrl.includes('drive.google.com') && !gdriveUrl.includes('docs.google.com')){
-                            showError('Please enter a valid Google Drive or Google Docs URL.');
-                            throw new Error('Validation failed');
-                        }
-                        formData.append('google_drive_url', gdriveUrl);
-                    } else {
-                        const rawVal = mode5RawText.value.trim();
-                        if(!rawVal){
-                            showError('Please paste some text to summarize.');
-                            throw new Error('Validation failed');
-                        }
-                        formData.append('raw_text', rawVal);
-                    }
-                    // Optional target overrides
-                    const tWords = mode5TargetWords.value.trim();
-                    if(tWords){
-                        const asInt = parseInt(tWords,10);
-                        if(isNaN(asInt) || asInt < 20){
-                            showError('Target words must be a number >= 20');
-                            throw new Error('Validation failed');
-                        }
-                        formData.append('target_words', asInt.toString());
-                    }
-                    // Optional user prompt
-                    const userPrompt = mode5UserPrompt.value.trim();
-                    if(userPrompt){
-                        if(userPrompt.length > 2000){
-                            showError('Custom prompt must not exceed 2000 characters');
-                            throw new Error('Validation failed');
-                        }
-                        formData.append('user_prompt', userPrompt);
-                    }
-                    const response = await fetch(`${API_BASE}/summarize-document`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    if (!response.ok) {
-                        let errorMsg = 'Document summarization failed';
-                        try {
-                            const errorData = await response.json();
-                            errorMsg = errorData.detail || errorMsg;
-                        } catch {}
-                        throw new Error(errorMsg);
-                    }
-                    const result = await response.json();
-                    addResult(result.markdown_summary, 'mode_5', false);
-                } catch (err) {
-                    showError(err.message || 'An error occurred during document summarization');
-                } finally {
-                    loading.classList.remove('active');
-                    generateBtn.disabled = false;
-                }
-                return;
-            }
-            // Other modes (1-4, 6): original logic
-            // Prepare request data
-            const requestData = {
+            
+            // Build request data based on mode requirements
+            const data = {
                 mode: currentMode,
-                regenerate: isRegeneration
+                min_input_words: parseInt(minWords.value)
             };
-            // Add text if required
-            if (config.requiresText) {
-                if (!textInput.value.trim()) {
-                    showError('Please enter text input for this mode.');
-                    return;
-                }
-                requestData.text = textInput.value.trim();
-            }
-            // Add header if required  
-            if (config.requiresHeader) {
-                if (!headerInput.value.trim()) {
-                    showError('Please enter a header/topic for this mode.');
-                    return;
-                }
-                requestData.header = headerInput.value.trim();
-            }
-            // Add body if required (mode 4 JSON, mode 6 free text)
-            if (config.requiresBody) {
-                if (!bodyInput.value.trim()) {
-                    showError(currentMode === 'mode_4' ? 'Please enter body data (JSON) for this mode.' : 'Please enter a body description for this mode.');
-                    return;
-                }
-                if (currentMode === 'mode_4') {
-                    try {
-                        requestData.body = JSON.parse(bodyInput.value.trim());
-                    } catch (e) {
-                        showError('Invalid JSON format in body field.');
-                        return;
-                    }
-                } else if (currentMode === 'mode_6') {
-                    requestData.body = bodyInput.value.trim();
-                }
-            }
-            // Debug: log request payload
-            console.log('Sending payload:', requestData);
-            // Add dynamic parameters (skip for mode 5)
-            if (currentMode !== 'mode_5') {
-                if (minWordsInput.value) {
-                    requestData.min_input_words = parseInt(minWordsInput.value);
-                }
-                if (maxLengthType.value && maxLengthValue.value) {
-                    requestData.max_output_length = {
-                        type: maxLengthType.value,
-                        value: parseInt(maxLengthValue.value)
+            
+            // Add max output length only if specified (optional)
+            const selectedLengthType = document.querySelector('input[name="length-type"]:checked').value;
+            if (selectedLengthType && maxLengthValue.value) {
+                const lengthValue = parseInt(maxLengthValue.value);
+                if (lengthValue > 0) {
+                    data.max_output_length = {
+                        type: selectedLengthType,
+                        value: lengthValue
                     };
                 }
-                // Validate minimum word count
-                const minWords = requestData.min_input_words || config.defaultMinWords;
-                if (config.requiresText && countWords(textInput.value) < minWords) {
-                    showError(`Please provide at least ${minWords} words in the text input.`);
+            }
+            
+            // Helper function to count words
+            function countWords(text) {
+                if (!text) return 0;
+                return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+            }
+            
+            // Get minimum words requirement
+            const minWordsRequired = data.min_input_words || config.defaultMinWords;
+            
+            // Add text input if required (backend expects "text", not "input_text")
+            if (config.requiresText) {
+                const text = inputText.value.trim();
+                if (!text) {
+                    showStatus('error', 'Please enter some text to process.');
                     return;
                 }
-                if (config.requiresHeader && countWords(headerInput.value) < minWords) {
-                    showError(`Please provide at least ${minWords} words in the header input.`);
+                
+                // Validate minimum word count for text
+                const textWords = countWords(text);
+                if (textWords < minWordsRequired) {
+                    showStatus('error', `Please provide at least ${minWordsRequired} words in the text input. Current: ${textWords} words.`);
                     return;
                 }
+                
+                data.text = text;
             }
-            // Show loading state
-            loading.classList.add('active');
-            generateBtn.disabled = true;
-            regenerateBtn.disabled = true;
-            const labels = modeActionLabels[currentMode];
-            if(labels){
-                loadingMessage.textContent = labels.loading;
+            
+            // Add header if required
+            if (config.requiresHeader) {
+                const header = headerInput.value.trim();
+                if (!header) {
+                    showStatus('error', 'Please enter a header/topic.');
+                    return;
+                }
+                
+                // Validate minimum word count for header
+                const headerWords = countWords(header);
+                if (headerWords < minWordsRequired) {
+                    showStatus('error', `Please provide at least ${minWordsRequired} words in the header input. Current: ${headerWords} words.`);
+                    return;
+                }
+                
+                data.header = header;
             }
+            
+            // Add body if required (mode 4 expects JSON object, mode 6 expects string)
+            if (config.requiresBody) {
+                const body = bodyInput.value.trim();
+                if (!body) {
+                    showStatus('error', currentMode === 'mode_4' ? 'Please enter body data (JSON).' : 'Please enter body content.');
+                    return;
+                }
+                
+                // Mode 4 requires JSON parsing
+                if (currentMode === 'mode_4') {
+                    try {
+                        data.body = JSON.parse(body);
+                    } catch (e) {
+                        showStatus('error', 'Invalid JSON format in body field.');
+                        return;
+                    }
+                } else {
+                    data.body = body;
+                }
+            }
+            
+            // Send request to backend
+            await processRequest('http://localhost:8000/autocomplete', data, 'POST');
+        });
+        
+        // Summarize Mode 5
+        summarizeBtn.addEventListener('click', async () => {
+            if (processing) return;
+            
+            const source = document.querySelector('input[name="input-source"]:checked').value;
+            const formData = new FormData();
+            
+            if (source === 'file') {
+                if (!fileInput.files.length) {
+                    showStatus('error', 'Please select a file to summarize.');
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                
+                // Validate file type
+                const allowedTypes = [
+                    'application/pdf',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'text/plain',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                ];
+                const allowedExtensions = ['.pdf', '.docx', '.txt', '.xlsx'];
+                const hasValidType = allowedTypes.includes(file.type) || 
+                                     allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+                
+                if (!hasValidType) {
+                    showStatus('error', 'Unsupported file type. Please upload PDF, DOCX, TXT, or XLSX.');
+                    return;
+                }
+                
+                // Validate file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    showStatus('error', 'File is too large. Maximum size is 10MB.');
+                    return;
+                }
+                
+                formData.append('file', file);
+            } else if (source === 'gdrive') {
+                const url = document.getElementById('gdriveUrl').value.trim();
+                if (!url) {
+                    showStatus('error', 'Please enter a Google Drive URL.');
+                    return;
+                }
+                
+                // Validate Google Drive URL
+                if (!url.includes('drive.google.com') && !url.includes('docs.google.com')) {
+                    showStatus('error', 'Please enter a valid Google Drive or Google Docs URL.');
+                    return;
+                }
+                
+                formData.append('google_drive_url', url);
+            } else {
+                const text = rawText.value.trim();
+                if (!text) {
+                    showStatus('error', 'Please paste some text to summarize.');
+                    return;
+                }
+                formData.append('raw_text', text);
+            }
+            
+            // Optional target words (must be >= 20 if specified)
+            const target = document.getElementById('targetWords')?.value;
+            if (target) {
+                const targetInt = parseInt(target);
+                if (isNaN(targetInt) || targetInt < 20) {
+                    showStatus('error', 'Target words must be a number >= 20.');
+                    return;
+                }
+                formData.append('target_words', targetInt.toString());
+            }
+            
+            // Optional user prompt for custom instructions
+            const prompt = userPrompt.value.trim();
+            if (prompt) {
+                if (prompt.length > 2000) {
+                    showStatus('error', 'Custom prompt must not exceed 2000 characters.');
+                    return;
+                }
+                formData.append('user_prompt', prompt);
+            }
+            
+            // Output format (use the select value if available, default to markdown)
+            const outputFormat = document.getElementById('outputFormat')?.value || 'markdown';
+            formData.append('output_format', outputFormat);
+            
+            await processRequest('http://localhost:8000/summarize-document', formData, 'POST', true);
+        });
+        
+        // Process request
+        async function processRequest(url, data, method, isFormData = false) {
+            processing = true;
+            setButtonLoading(true);
+            clearResults();
+            showStatus('info', 'Processing... This may take a few moments.');
+            
+            const startTime = Date.now();
+            
             try {
-                const response = await fetch(`${API_BASE}/autocomplete`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(requestData)
-                });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Generation failed');
+                const options = {
+                    method: method,
+                    body: isFormData ? data : JSON.stringify(data)
+                };
+                
+                if (!isFormData) {
+                    options.headers = { 'Content-Type': 'application/json' };
                 }
+                
+                const response = await fetch(url, options);
                 const result = await response.json();
-                // Add result to display
-                addResult(result.completion, result.mode, isRegeneration);
-                // Store last request for regeneration
-                lastRequest = requestData;
-                // Show regenerate button if supported
-                if (config.supportsRegenerate && !isRegeneration) {
-                    regenerateBtn.style.display = 'inline-block';
+                
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                
+                if (response.ok) {
+                    showStatus('success', 'Processing complete!');
+                    displayResults(result, elapsed);
+                } else {
+                    showStatus('error', result.detail || 'An error occurred during processing.');
                 }
-            } catch (err) {
-                showError(err.message || 'An error occurred during generation');
+            } catch (error) {
+                showStatus('error', `Error: ${error.message}`);
             } finally {
-                // Hide loading state
-                loading.classList.remove('active');
-                generateBtn.disabled = false;
-                regenerateBtn.disabled = false;
+                processing = false;
+                setButtonLoading(false);
             }
         }
-    // File upload element for Mode 5
-    const fileUploadGroup = document.getElementById('file-upload-group');
-    const fileUpload = document.getElementById('file-upload');
         
-        // Initialize UI
-    updateUIForMode();
-    updateActionLabels();
-        updateCounter(textCounter, textInput.value);
-        updateCounter(headerCounter, headerInput.value);
-        if (bodyCounter) updateCounter(bodyCounter, bodyInput.value);
-        if (mode5RawCounter) updateCounter(mode5RawCounter, mode5RawText.value);
-        if (mode5PromptCounter) updatePromptCounter(mode5PromptCounter, mode5UserPrompt.value);
-        updateLengthHint();
+        // Display results
+        function displayResults(data, elapsed) {
+            emptyState.classList.add('hidden');
+            resultsContainer.classList.add('active');
+            
+            document.getElementById('result-time').textContent = `⏱️ ${elapsed}s`;
+            
+            // Display output based on response structure
+            if (data.completion) {
+                // Autocomplete endpoint returns "completion"
+                outputResult.innerHTML = marked.parse(data.completion);
+            } else if (data.markdown_summary) {
+                // Summarize endpoint returns "markdown_summary"
+                outputResult.innerHTML = marked.parse(data.markdown_summary);
+            } else if (data.document) {
+                outputResult.innerHTML = marked.parse(data.document);
+            } else {
+                // Fallback
+                outputResult.textContent = JSON.stringify(data, null, 2);
+            }
+            
+            // Display metadata
+            metadataContainer.innerHTML = '';
+            const metadataWrapper = document.getElementById('metadataWrapper');
+            let hasMetadata = false;
+            
+            // Add mode metadata
+            if (data.mode) {
+                addMetadata('Mode', data.mode.replace('_', ' ').toUpperCase());
+                hasMetadata = true;
+            }
+            
+            // Calculate word/character count from output (now in collapsible section)
+            let outputText = data.completion || data.markdown_summary || data.document || '';
+            if (outputText) {
+                const words = outputText.trim().split(/\s+/).filter(w => w.length > 0).length;
+                const chars = outputText.length;
+                addMetadata('Words', words);
+                addMetadata('Characters', chars);
+                hasMetadata = true;
+            }
+            
+            // Additional metadata from response
+            if (data.target_words) {
+                addMetadata('Target Words', data.target_words);
+                hasMetadata = true;
+            }
+            if (data.resolved_target_words) {
+                addMetadata('Resolved Target', data.resolved_target_words);
+                hasMetadata = true;
+            }
+            
+            // Show metadata wrapper if there's any metadata
+            if (hasMetadata) {
+                metadataWrapper.style.display = 'block';
+            } else {
+                metadataWrapper.style.display = 'none';
+            }
+        }
+        
+        function addMetadata(label, value, color = null) {
+            const item = document.createElement('div');
+            item.className = 'metadata-item';
+            item.innerHTML = `
+                <span class="metadata-label">${label}:</span>
+                <span class="metadata-value" ${color ? `style="color: ${color}"` : ''}>${value}</span>
+            `;
+            metadataContainer.appendChild(item);
+        }
+        
+        // Status messages
+        function showStatus(type, message) {
+            statusMessage.innerHTML = `
+                <div class="status-message status-${type}">
+                    <span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusMessage.innerHTML = '';
+                }, 5000);
+            }
+        }
+        
+        // Button loading state
+        function setButtonLoading(loading) {
+            const buttons = [processBtn, summarizeBtn].filter(btn => btn);
+            buttons.forEach(btn => {
+                btn.disabled = loading;
+                if (loading) {
+                    const originalText = btn.querySelector('span:last-child').textContent;
+                    btn.dataset.originalText = originalText;
+                    btn.querySelector('span:first-child').innerHTML = '<span class="spinner"></span>';
+                    btn.querySelector('span:last-child').textContent = 'Processing...';
+                } else {
+                    const icon = btn === summarizeBtn ? '📄' : '✨';
+                    btn.querySelector('span:first-child').textContent = icon;
+                    btn.querySelector('span:last-child').textContent = btn.dataset.originalText || 'Process';
+                }
+            });
+        }
+        
+        // Clear results
+        function clearResults() {
+            resultsContainer.classList.remove('active');
+            emptyState.classList.remove('hidden');
+            statusMessage.innerHTML = '';
+            
+            // Reset metadata section
+            const metadataWrapper = document.getElementById('metadataWrapper');
+            const metadataContainer = document.getElementById('metadataContainer');
+            const metadataArrow = document.getElementById('metadata-arrow');
+            metadataWrapper.style.display = 'none';
+            metadataContainer.classList.remove('show');
+            metadataArrow.classList.remove('open');
+        }
     </script>
 </body>
 </html>

@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Mode Text Enrichment System - Dynamic Parameters</title>
+    <!-- Markdown renderer -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+        }
+        
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        /* Mode Selection */
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .mode-btn {
+            padding: 12px 24px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            color: #666;
+        }
+        
+        .mode-btn.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
+        .mode-btn:hover:not(.active) {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+        
+        /* Mode Descriptions */
+        .mode-description {
+            display: none;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .mode-description.active {
+            display: block;
+        }
+        
+        /* Input Areas */
+        .input-section {
+            margin: 20px 0;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .input-group input, .input-group textarea, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus, .input-group textarea:focus, .input-group select:focus {
+            border-color: #4CAF50;
+        }
+        
+        .input-group textarea {
+            min-height: 120px;
+        }
+        
+        /* Dynamic Parameters */
+        .parameters-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .parameters-header {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .parameter-row {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .parameter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .parameter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .parameter-group input, .parameter-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-transform: none;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            border-color: #ccc;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn:disabled:hover {
+            transform: none;
+        }
+        
+        /* Results */
+        .results-section {
+            margin-top: 30px;
+        }
+        
+        .results-header {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .result-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+            margin-bottom: 15px;
+        }
+        
+        .result-meta {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .result-content {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap; /* Preserve line breaks and spacing from model output */
+        }
+        .result-content.formatted { white-space: normal; }
+        .result-content .doc-title { font-size: 1.15em; font-weight: 600; margin-bottom: 8px; }
+        .result-content .doc-heading { font-size: 0.95em; font-weight: 600; margin-top: 20px; letter-spacing: .5px; }
+        .result-content ul, .result-content ol { margin: 8px 0 16px 24px; padding: 0; }
+        .result-content li { margin: 2px 0; }
+        .result-content .kpi-block { background:#f1f5f4; padding:10px 14px; border-left:4px solid #4CAF50; border-radius:6px; margin:12px 0; }
+        .format-toggle { background:#f0f0f0; border:1px solid #d4d4d4; padding:4px 10px; border-radius:6px; font-size:12px; cursor:pointer; margin-top:8px; }
+        
+        /* Loading States */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Error States */
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #c62828;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .error.active {
+            display: block;
+        }
+        
+        /* Word/Character Counters */
+        .counter {
+            font-size: 12px;
+            color: #666;
+            text-align: right;
+            margin-top: 5px;
+        }
+        
+        .counter.warning {
+            color: #ff9800;
+        }
+        
+        .counter.error {
+            color: #f44336;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .main-container {
+                padding: 20px;
+            }
+            
+            .mode-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .mode-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .parameter-row {
+                flex-direction: column;
+            }
+            
+            .parameter-group {
+                min-width: 100%;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Multi-Type Text Enrichment System</h1>
+    
+    <div class="main-container">
+        <!-- Mode Selection -->
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="mode_1">Context-Aware Completion</button>
+            <button class="mode-btn" data-mode="mode_2">Structured Context Enrichment</button>
+            <button class="mode-btn" data-mode="mode_3">Flexible Input Refinement</button>
+            <button class="mode-btn" data-mode="mode_4">Description Generation</button>
+            <button class="mode-btn" data-mode="mode_5">Document Summarization</button>
+            <button class="mode-btn" data-mode="mode_6">Document Development</button>
+        </div>
+        
+        <!-- Mode Descriptions -->
+        <div class="mode-description active" id="desc-mode_1">
+            <strong>Context-Aware Completion:</strong> Intelligently continues your text while maintaining style, tone, and context. Perfect for extending paragraphs, completing thoughts, or continuing narratives.
+        </div>
+        <div class="mode-description" id="desc-mode_2">
+            <strong>Structured Context Enrichment:</strong> Enhances your text based on a specific topic or header context. Enriches content while staying aligned with the provided theme. <span style="color:#4CAF50">Now accepts as little as 2 words.</span>
+        </div>
+        <div class="mode-description" id="desc-mode_3">
+            <strong>Flexible Input Refinement:</strong> Polishes messy, incomplete, or grammatically incorrect text. Improves clarity and structure while preserving original meaning.
+        </div>
+        <div class="mode-description" id="desc-mode_4">
+            <strong>Description Agent:</strong> Generates one or more natural language descriptions from a high-level context (header) and a structured JSON body. Useful for summarizing or describing structured data (e.g., transaction details).
+        </div>
+        <div class="mode-description" id="desc-mode_5">
+            <strong>Document Summarization:</strong> Analyzes and distills long-form content into concise, clear, and logically structured summaries. Perfect for quickly understanding the key points of a document. You can provide custom instructions (tone, focus, audience) and even specify the target word count directly in your prompt (e.g., "summarize in 150 words focusing on financial risks").
+        </div>
+        <div class="mode-description" id="desc-mode_6">
+            <strong>Document Development:</strong> Creates comprehensive and well-structured documents based on a topic (header) and detailed description (body). Ideal for generating business proposals, technical guides, or creative stories.
+        </div>
+        
+        <!-- Input Section -->
+        <div class="input-section">
+            <!-- Text Input (for modes 1, 2, 3) -->
+            <div class="input-group" id="text-input-group">
+                <label for="text-input">Input Text:</label>
+                <textarea id="text-input" placeholder="Enter your text here..."></textarea>
+                <div class="counter" id="text-counter">0 words, 0 characters</div>
+            </div>
+
+            <!-- File Upload for Mode 5 (Document Summarization) -->
+            <div class="input-group" id="file-upload-group" style="display: none;">
+                <label for="file-upload">Upload Document (PDF, DOCX, TXT):</label>
+                <input type="file" id="file-upload" accept=".pdf,.docx,.txt" />
+                <div style="font-size:12px;color:#555;margin-top:5px;">Max 10MB. Only PDF, DOCX, or TXT files are supported.</div>
+            </div>
+            <!-- Mode 5 Input Type Toggle -->
+            <div class="input-group" id="mode5-input-type-group" style="display:none;">
+                <label>Mode 5 Input Source:</label>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:14px;">
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_source" value="file" checked>
+                        <span>📄 Upload File</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_source" value="gdrive">
+                        <span>☁️ Google Drive</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_source" value="raw">
+                        <span>📝 Paste Text</span>
+                    </label>
+                </div>
+            </div>
+            <!-- Google Drive URL Input for Mode 5 -->
+            <div class="input-group" id="mode5-gdrive-group" style="display:none;">
+                <label for="mode5-gdrive-url">Google Drive Public Link:</label>
+                <input 
+                    type="text" 
+                    id="mode5-gdrive-url" 
+                    placeholder="https://drive.google.com/file/d/YOUR_FILE_ID/view or Google Docs link"
+                    style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;font-size:14px;">
+                <div style="font-size:12px;color:#666;margin-top:6px;">
+                    💡 Supports Google Docs, Sheets, Slides, and uploaded files (PDF, DOCX, TXT)<br>
+                    🔓 File must be shared as "Anyone with the link can view"
+                </div>
+            </div>
+            <!-- Raw Text Area for Mode 5 (pasted) -->
+            <div class="input-group" id="mode5-raw-text-group" style="display:none;">
+                <label for="mode5-raw-text">Paste Document Text:</label>
+                <textarea id="mode5-raw-text" placeholder="Paste full document text here for summarization..."></textarea>
+                <div class="counter" id="mode5-raw-counter">0 words, 0 characters</div>
+            </div>
+            <!-- Mode 5 target words (ratio removed) -->
+            <div class="input-group" id="mode5-target-group" style="display:none;">
+                <label>Summary Target Words (Optional):</label>
+                <input type="number" id="mode5-target-words" placeholder="Target words (e.g., 250)" min="20" style="flex:1;min-width:160px;" />
+                <div id="mode5-target-hint" style="font-size:12px;color:#555;margin-top:6px;">Enter a target or leave blank for auto behavior.</div>
+            </div>
+            <!-- Mode 5 custom prompt -->
+            <div class="input-group" id="mode5-prompt-group" style="display:none;">
+                <label for="mode5-user-prompt">Custom Prompt (Optional):</label>
+                <textarea id="mode5-user-prompt" placeholder="Example: Summarize in 180 words focusing on financial risks and key trends with a formal tone..." rows="3" maxlength="2000"></textarea>
+                <div class="counter" id="mode5-prompt-counter">0 / 2000 characters</div>
+                <div style="font-size:12px;color:#555;margin-top:6px;">
+                    💡 Tip: You can specify word count here (e.g., "summarize in 150 words"). If both prompt and target words are provided, the prompt takes priority.
+                </div>
+            </div>
+            <!-- Mode 5 output format selection -->
+            <div class="input-group" id="mode5-output-format-group" style="display:none;">
+                <label>Output Format:</label>
+                <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:14px;">
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_output_format" value="markdown" checked>
+                        <span>Markdown</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_output_format" value="plain">
+                        <span>Plain Text</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="radio" name="mode5_output_format" value="both">
+                        <span>Both</span>
+                    </label>
+                </div>
+                <div style="font-size:12px;color:#555;margin-top:6px;">Plain removes formatting; Both returns both Markdown & plain.</div>
+            </div>
+            
+            <!-- Header Input (for modes 2, 4, 6) -->
+            <div class="input-group" id="header-input-group" style="display: none;">
+                <label for="header-input">Header/Topic Context:</label>
+                <input type="text" id="header-input" placeholder="Enter topic or context header...">
+                <div class="counter" id="header-counter">0 words, 0 characters</div>
+            </div>
+            
+            <!-- Body Input (for mode 4)
+            <div class="input-group" id="body-input-group" style="display: none;">
+                <label for="body-input">Body (JSON):</label>
+                <textarea id="body-input" placeholder='{"amount": 100, "currency": "USD", "merchant": "Store"}'></textarea>
+            </div> -->
+
+            <!-- Body Input (for modes 4, 6) -->
+            <div class="input-group" id="body-input-group" style="display: none;">
+                <label for="body-input">Body (Description or JSON):</label>
+                <textarea id="body-input" placeholder="Enter detailed description or JSON data here..."></textarea>
+                <div class="counter" id="body-counter">0 words, 0 characters</div>
+            </div>
+        </div>
+        
+        <!-- Dynamic Parameters Section (hidden for Mode 5) -->
+        <div class="parameters-section" id="parameters-section">
+            <div class="parameters-header">Dynamic Parameters</div>
+            <div class="parameter-row">
+                <div class="parameter-group">
+                    <label for="min-words">Minimum Input Words:</label>
+                    <input type="number" id="min-words" min="1" max="100" placeholder="Auto">
+                </div>
+                <div class="parameter-group">
+                    <label for="max-length-type">Output Length Type:</label>
+                    <select id="max-length-type">
+                        <option value="">No Limit</option>
+                        <option value="characters">Characters</option>
+                        <option value="words">Words</option>
+                    </select>
+                </div>
+                <div class="parameter-group">
+                    <label for="max-length-value">Max Length Value:</label>
+                    <input type="number" id="max-length-value" min="1" max="2000" placeholder="200" disabled>
+                </div>
+            </div>
+            <div id="length-hint" style="font-size:12px;color:#555;display:none;margin-top:-5px;margin-bottom:5px;"></div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="button-group">
+            <button class="btn btn-primary" id="generate-btn">Generate Enrichment</button>
+            <button class="btn btn-secondary" id="regenerate-btn" style="display: none;">Generate Alternative</button>
+            <button class="btn btn-secondary" id="clear-results-btn">Clear Results</button>
+        </div>
+        
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div id="loading-message">Generating enriched content...</div>
+        </div>
+        
+        <!-- Error Display -->
+        <div class="error" id="error"></div>
+        
+        <!-- Results Section -->
+        <div class="results-section" id="results-section" style="display: none;">
+            <div class="results-header">Generated Results</div>
+            <div id="results-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        let currentMode = 'mode_1';
+        let lastRequest = null;
+        const API_BASE = 'http://localhost:8000'; // Update this to your backend URL
+
+        // Per-mode action labels for buttons & loading states
+        const modeActionLabels = {
+            mode_1: {
+                primary: 'Continue Writing',
+                regenerate: 'Try Another Continuation',
+                loading: 'Generating continuation...',
+                use: 'Use This Continuation'
+            },
+            mode_2: {
+                primary: 'Enrich Content',
+                regenerate: 'Generate Alternative Enrichment',
+                loading: 'Enriching content...',
+                use: 'Use This Enrichment'
+            },
+            mode_3: {
+                primary: 'Refine Text',
+                regenerate: 'Refine Again', // (Regenerate disabled by config but kept for consistency)
+                loading: 'Refining text...',
+                use: 'Use This Refinement'
+            },
+            mode_4: {
+                primary: 'Generate Description',
+                regenerate: 'Generate Alternative Description',
+                loading: 'Generating description...',
+                use: 'Use This Description'
+            },
+            mode_5: {
+                primary: 'Summarize Document',
+                regenerate: 'Generate Alternative Summary',
+                loading: 'Summarizing document...',
+                use: 'Use This Summary'
+            },
+            mode_6: {
+                primary: 'Develop Document',
+                regenerate: 'Generate Alternative Draft',
+                loading: 'Developing document...',
+                use: 'Use This Draft'
+            }
+        };
+        
+        // Mode configurations
+        const modeConfigs = {
+            mode_1: {
+                requiresText: true,
+                requiresHeader: false,
+                requiresBody: false,
+                supportsRegenerate: true,
+                defaultMinWords: 20
+            },
+            mode_2: {
+                requiresText: true,
+                requiresHeader: true,
+                requiresBody: false,
+                supportsRegenerate: true,
+                defaultMinWords: 2
+            },
+            mode_3: {
+                requiresText: true,
+                requiresHeader: false,
+                requiresBody: false,
+                supportsRegenerate: false,
+                defaultMinWords: 0
+            },
+            mode_4: {
+                requiresText: false,
+                requiresHeader: true,
+                requiresBody: true,
+                supportsRegenerate: true,
+                defaultMinWords: 2
+            },
+            mode_5: {
+                requiresText: true,
+                requiresHeader: false,
+                requiresBody: false,
+                supportsRegenerate: true,
+                defaultMinWords: 20
+            },
+            mode_6: {
+                requiresText: false,
+                requiresHeader: true,
+                requiresBody: true,
+                supportsRegenerate: true,
+                defaultMinWords: 2
+            }
+        };
+        
+        // DOM Elements
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        const modeDescriptions = document.querySelectorAll('.mode-description');
+        const textInputGroup = document.getElementById('text-input-group');
+        const headerInputGroup = document.getElementById('header-input-group');
+        const bodyInputGroup = document.getElementById('body-input-group');
+        const textInput = document.getElementById('text-input');
+        const headerInput = document.getElementById('header-input');
+        const bodyInput = document.getElementById('body-input');
+        const textCounter = document.getElementById('text-counter');
+        const headerCounter = document.getElementById('header-counter');
+        const bodyCounter = document.getElementById('body-counter');
+    const mode5InputTypeGroup = document.getElementById('mode5-input-type-group');
+    const mode5RawTextGroup = document.getElementById('mode5-raw-text-group');
+    const mode5RawText = document.getElementById('mode5-raw-text');
+    const mode5RawCounter = document.getElementById('mode5-raw-counter');
+    const mode5GdriveGroup = document.getElementById('mode5-gdrive-group');
+    const mode5GdriveUrl = document.getElementById('mode5-gdrive-url');
+    const mode5TargetGroup = document.getElementById('mode5-target-group');
+    const mode5TargetWords = document.getElementById('mode5-target-words');
+    const mode5PromptGroup = document.getElementById('mode5-prompt-group');
+    const mode5UserPrompt = document.getElementById('mode5-user-prompt');
+    const mode5PromptCounter = document.getElementById('mode5-prompt-counter');
+    const mode5OutputFormatGroup = document.getElementById('mode5-output-format-group');
+        const minWordsInput = document.getElementById('min-words');
+        const maxLengthType = document.getElementById('max-length-type');
+        const maxLengthValue = document.getElementById('max-length-value');
+        const parametersSection = document.getElementById('parameters-section');
+        const generateBtn = document.getElementById('generate-btn');
+        const regenerateBtn = document.getElementById('regenerate-btn');
+        const loadingMessage = document.getElementById('loading-message');
+        const clearResultsBtn = document.getElementById('clear-results-btn');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const resultsSection = document.getElementById('results-section');
+        const resultsContainer = document.getElementById('results-container');
+        
+        // Utility functions
+        function countWords(text) {
+            if (!text) return 0;
+            return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+        }
+        
+        function countCharacters(text) {
+            return text ? text.trim().length : 0;
+        }
+        
+        function updateCounter(element, text) {
+            const words = countWords(text);
+            const chars = countCharacters(text);
+            element.textContent = `${words} words, ${chars} characters`;
+            
+            // Update counter styling based on requirements
+            const config = modeConfigs[currentMode];
+            const minWords = parseInt(minWordsInput.value) || config.defaultMinWords;
+            
+            element.classList.remove('warning', 'error');
+            if (words < minWords) {
+                element.classList.add('error');
+            } else if (words < minWords + 5) {
+                element.classList.add('warning');
+            }
+        }
+        
+        function updatePromptCounter(element, text) {
+            const chars = text.length;
+            const maxChars = 2000;
+            element.textContent = `${chars} / ${maxChars} characters`;
+            
+            element.classList.remove('warning', 'error');
+            if (chars > maxChars) {
+                element.classList.add('error');
+            } else if (chars > maxChars - 100) {
+                element.classList.add('warning');
+            }
+        }
+        
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('active');
+            setTimeout(() => {
+                error.classList.remove('active');
+            }, 5000);
+        }
+        
+        function addResult(content, mode, isRegeneration = false) {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
+            
+            const meta = document.createElement('div');
+            meta.className = 'result-meta';
+            let baseMeta = `Mode: ${mode.replace('_', ' ').toUpperCase()}${isRegeneration ? ' (Alternative)' : ''} • Generated: ${new Date().toLocaleTimeString()}`;
+            // Inject Mode 5 resolved target metadata if available
+            if (mode === 'mode_5' && typeof content === 'object' && content !== null) {
+                const rm = content.meta || content.length_enforcement || content.ingest || {};
+            }
+            meta.textContent = baseMeta;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'result-content';
+            let formattedHtml = '';
+            if (mode === 'mode_5' && window.marked) {
+                let mdSource = '';
+                if (typeof content === 'object' && content !== null) {
+                    if (content.markdown_summary) mdSource = content.markdown_summary;
+                    else if (content.plain_summary) mdSource = content.plain_summary;
+                } else {
+                    mdSource = content || '';
+                }
+                formattedHtml = marked.parse(mdSource || '');
+                contentDiv.classList.add('formatted');
+                contentDiv.innerHTML = formattedHtml;
+            } else {
+                formattedHtml = formatStructured(typeof content === 'string' ? content : (content.markdown_summary || content.plain_summary || ''));
+                if(formattedHtml){
+                    contentDiv.classList.add('formatted');
+                    contentDiv.innerHTML = formattedHtml;
+                } else {
+                    contentDiv.textContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+                }
+            }
+
+            // Toggle button for raw / formatted view
+            const toggleBtn = document.createElement('button');
+            toggleBtn.textContent = 'Toggle Raw/Formatted';
+            toggleBtn.className = 'format-toggle';
+            let showingFormatted = true;
+            toggleBtn.onclick = () => {
+                if(showingFormatted){
+                    contentDiv.classList.remove('formatted');
+                    let rawText = '';
+                    if (typeof content === 'object' && content !== null) {
+                        rawText = content.markdown_summary || content.plain_summary || JSON.stringify(content, null, 2);
+                    } else rawText = content;
+                    contentDiv.textContent = rawText; // raw
+                } else {
+                    if (mode === 'mode_5' && window.marked) {
+                        let mdSource = '';
+                        if (typeof content === 'object' && content !== null) {
+                            mdSource = content.markdown_summary || content.plain_summary || '';
+                        } else mdSource = content || '';
+                        contentDiv.classList.add('formatted');
+                        contentDiv.innerHTML = marked.parse(mdSource || '');
+                    } else {
+                        contentDiv.classList.add('formatted');
+                        contentDiv.innerHTML = formattedHtml;
+                    }
+                }
+                showingFormatted = !showingFormatted;
+            };
+            
+            // Add "Use This Suggestion" button
+            const useBtn = document.createElement('button');
+            useBtn.className = 'btn btn-secondary';
+            const labelCfg = modeActionLabels[mode] || { use: 'Use This Result' };
+            useBtn.textContent = labelCfg.use;
+            useBtn.onclick = () => {
+                alert('Suggestion selected! You can now use this text elsewhere.');
+            };
+            
+            resultItem.appendChild(meta);
+            resultItem.appendChild(contentDiv);
+            resultItem.appendChild(toggleBtn);
+            resultItem.appendChild(useBtn);
+            
+            if (isRegeneration) {
+                resultsContainer.insertBefore(resultItem, resultsContainer.firstChild);
+            } else {
+                resultsContainer.appendChild(resultItem);
+            }
+            
+            resultsSection.style.display = 'block';
+        }
+
+        // Mode 5 target hint logic
+        const mode5TargetHint = document.getElementById('mode5-target-hint');
+        function updateMode5TargetHint() {
+            if (currentMode !== 'mode_5') return;
+            let words = 0;
+            // If raw source selected use pasted; else attempt estimate from main text input (if visible)
+            const sourceType = document.querySelector('input[name="mode5_source"]:checked')?.value || 'file';
+            if (sourceType === 'raw') {
+                words = countWords(mode5RawText.value);
+            } else {
+                // file case: can't know until upload
+            }
+            const val = mode5TargetWords.value.trim();
+            if (val) {
+                const target = parseInt(val);
+                if (words > 0 && target > words) {
+                    mode5TargetHint.textContent = `Requested ${target} exceeds document length (${words}); will cap to ${words}.`;
+                } else {
+                    mode5TargetHint.textContent = `Will enforce exactly ${target} words.`;
+                }
+            } else {
+                if (words === 0) {
+                    mode5TargetHint.textContent = 'No target entered: small docs (<=500 words) default to 100; larger docs auto 20% after processing.';
+                } else if (words <= 500) {
+                    mode5TargetHint.textContent = `No target: will default to 100 words (document has ${words}).`;
+                } else {
+                    const autoTarget = Math.max(1, Math.round(words * 0.20));
+                    mode5TargetHint.textContent = `No target: will auto-summarize to 20% ≈ ${autoTarget} words (document has ${words}).`;
+                }
+            }
+        }
+
+        mode5TargetWords.addEventListener('input', updateMode5TargetHint);
+        mode5RawText.addEventListener('input', () => { updateCounter(mode5RawCounter, mode5RawText.value); updateMode5TargetHint(); });
+        mode5UserPrompt.addEventListener('input', () => { updatePromptCounter(mode5PromptCounter, mode5UserPrompt.value); });
+        document.addEventListener('change', (e)=>{
+            if (e.target && e.target.name === 'mode5_source') {
+                updateUIForMode(); // Show/hide appropriate input groups
+                updateMode5TargetHint();
+            }
+        });
+
+        function escapeHtml(str){
+            return str
+                .replace(/&/g,'&amp;')
+                .replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;')
+                .replace(/"/g,'&quot;')
+                .replace(/'/g,'&#39;');
+        }
+
+        // Attempt to structure professional doc outputs (esp. Mode 6)
+        function formatStructured(raw){
+            if(!raw || raw.length < 40) return '';
+            const lines = raw.split(/\n+/).map(l=>l.trim()).filter(l=>l.length>0);
+            if(lines.length < 3) return '';
+            const headingSet = new Set([
+                'EXECUTIVE SUMMARY','INTRODUCTION','OBJECTIVES','GOALS','STRATEGY','IMPLEMENTATION PLAN',
+                'KPIS & MEASUREMENT','RISKS & MITIGATION','RESOURCE & BUDGET','TIMELINE','CONCLUSION'
+            ]);
+            // Heuristic: first line that is not all-caps heading is title
+            let idx=0; let title='';
+            if(lines[0] && !headingSet.has(lines[0].toUpperCase())){
+                title = lines[0]; idx=1;
+            }
+            const blocks=[]; let current=null;
+            function pushCurrent(){ if(current){ blocks.push(current); current=null; } }
+            for(let i=idx;i<lines.length;i++){
+                const ln = lines[i];
+                const up = ln.toUpperCase();
+                if(headingSet.has(up)){
+                    pushCurrent();
+                    current = { heading: up, lines: [] };
+                } else {
+                    if(!current){ current = { heading: null, lines: [] }; }
+                    current.lines.push(ln);
+                }
+            }
+            pushCurrent();
+            if(blocks.length === 0) return '';
+            // Build HTML
+            let html='';
+            if(title) html += `<div class="doc-title">${escapeHtml(title)}</div>`;
+            for(const b of blocks){
+                if(b.heading){
+                    html += `<div class="doc-heading">${escapeHtml(b.heading)}</div>`;
+                }
+                // Attempt list grouping
+                const paragraphBuffer=[]; let listBuffer=[]; let listType=null; function flushList(){ if(listBuffer.length){ html += listType==='ol'?'<ol>':'<ul>'; listBuffer.forEach(li=> html += `<li>${escapeHtml(li)}</li>`); html += listType==='ol'?'</ol>':'</ul>'; listBuffer=[]; listType=null; } }
+                for(const line of b.lines){
+                    const numMatch = line.match(/^([0-9]{1,2})\.\s+(.*)$/);
+                    const bulletMatch = line.match(/^[-•*]\s+(.*)$/);
+                    if(numMatch){
+                        if(listType && listType!=='ol') flushList();
+                        listType='ol';
+                        listBuffer.push(numMatch[2]);
+                    } else if(bulletMatch){
+                        if(listType && listType!=='ul') flushList();
+                        listType='ul';
+                        listBuffer.push(bulletMatch[1]);
+                    } else {
+                        flushList();
+                        paragraphBuffer.push(line);
+                    }
+                }
+                flushList();
+                if(paragraphBuffer.length){
+                    paragraphBuffer.forEach(p=>{
+                        if(b.heading && b.heading.includes('KPI')){
+                            html += `<div class="kpi-block">${escapeHtml(p)}</div>`;
+                        } else {
+                            html += `<p>${escapeHtml(p)}</p>`;
+                        }
+                    });
+                }
+            }
+            return html;
+        }
+        
+        // Event listeners
+        modeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Update active mode button
+                modeButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Update active mode description
+                modeDescriptions.forEach(desc => desc.classList.remove('active'));
+                document.getElementById(`desc-${button.dataset.mode}`).classList.add('active');
+                
+                // Update current mode
+                currentMode = button.dataset.mode;
+                
+                // Update UI based on mode requirements
+                updateUIForMode();
+                
+                // Update counters
+                updateCounter(textCounter, textInput.value);
+                updateCounter(headerCounter, headerInput.value);
+                
+                // Update minimum words placeholder
+                minWordsInput.placeholder = modeConfigs[currentMode].defaultMinWords.toString();
+                
+                // Hide regenerate button when switching modes
+                regenerateBtn.style.display = 'none';
+                lastRequest = null;
+
+                // Update action labels
+                updateActionLabels();
+            });
+        });
+        
+        // Clear results button handler
+        document.getElementById('clear-results-btn').addEventListener('click', () => {
+            resultsContainer.innerHTML = '';
+            resultsSection.style.display = 'none';
+            regenerateBtn.style.display = 'none';
+            lastRequest = null;
+        });
+
+        // Function to update UI for mode
+        function updateUIForMode() {
+            const config = modeConfigs[currentMode];
+            // Show/hide input groups based on mode requirements
+            if (currentMode === 'mode_5') {
+                textInputGroup.style.display = 'none';
+                mode5InputTypeGroup.style.display = 'block';
+                // Determine selected source
+                const selectedSource = document.querySelector('input[name="mode5_source"]:checked')?.value || 'file';
+                if (selectedSource === 'file') {
+                    fileUploadGroup.style.display = 'block';
+                    mode5GdriveGroup.style.display = 'none';
+                    mode5RawTextGroup.style.display = 'none';
+                } else if (selectedSource === 'gdrive') {
+                    fileUploadGroup.style.display = 'none';
+                    mode5GdriveGroup.style.display = 'block';
+                    mode5RawTextGroup.style.display = 'none';
+                } else {
+                    fileUploadGroup.style.display = 'none';
+                    mode5GdriveGroup.style.display = 'none';
+                    mode5RawTextGroup.style.display = 'block';
+                }
+                mode5TargetGroup.style.display = 'block';
+                mode5PromptGroup.style.display = 'block';
+                if(mode5OutputFormatGroup) mode5OutputFormatGroup.style.display = 'block';
+                headerInputGroup.style.display = 'none';
+                bodyInputGroup.style.display = 'none';
+                parametersSection.style.display = 'none';
+            } else {
+                textInputGroup.style.display = config.requiresText ? 'block' : 'none';
+                fileUploadGroup.style.display = 'none';
+                mode5InputTypeGroup.style.display = 'none';
+                mode5GdriveGroup.style.display = 'none';
+                mode5RawTextGroup.style.display = 'none';
+                mode5TargetGroup.style.display = 'none';
+                mode5PromptGroup.style.display = 'none';
+                if(mode5OutputFormatGroup) mode5OutputFormatGroup.style.display = 'none';
+                headerInputGroup.style.display = config.requiresHeader ? 'block' : 'none';
+                bodyInputGroup.style.display = config.requiresBody ? 'block' : 'none';
+                parametersSection.style.display = 'block';
+            }
+            
+            // // Update labels based on mode
+            // if (currentMode === 'mode_4') {
+            //     headerInput.placeholder = 'Enter high-level context for description generation...';
+            // } else if (currentMode === 'mode_2') {
+            //     headerInput.placeholder = 'Enter topic or theme for enrichment...';
+            // }
+
+            // Update placeholders based on mode
+            if (currentMode === 'mode_4') {
+                headerInput.placeholder = 'Enter high-level context for description generation...';
+                bodyInput.placeholder = 'Enter structured JSON data (e.g., {"key": "value"})...';
+            } else if (currentMode === 'mode_6') {
+                headerInput.placeholder = 'Enter high-level context for document generation...';
+                bodyInput.placeholder = 'Enter a detailed description for the document...';
+            } else if (currentMode === 'mode_2') {
+                headerInput.placeholder = 'Enter topic or theme for enrichment...';
+            }
+        }
+
+        function updateActionLabels(){
+            const labels = modeActionLabels[currentMode];
+            if(!labels) return;
+            generateBtn.textContent = labels.primary;
+            // Hide regenerate for mode 5 (file upload)
+            if(currentMode === 'mode_5') {
+                regenerateBtn.style.display = 'none';
+            } else {
+                regenerateBtn.textContent = labels.regenerate;
+            }
+        }
+        
+        // Input event listeners for counters
+        textInput.addEventListener('input', () => {
+            updateCounter(textCounter, textInput.value);
+        });
+        
+        headerInput.addEventListener('input', () => {
+            updateCounter(headerCounter, headerInput.value);
+        });
+        bodyInput.addEventListener('input', () => {
+            updateCounter(bodyCounter, bodyInput.value);
+        });
+        if(mode5RawText){
+            mode5RawText.addEventListener('input', ()=>{
+                updateCounter(mode5RawCounter, mode5RawText.value);
+            });
+        }
+        // Listen for Mode 5 input source change
+        document.addEventListener('change', (e)=>{
+            if(e.target && e.target.name === 'mode5_source'){
+                if(currentMode === 'mode_5'){
+                    updateUIForMode();
+                }
+            }
+        });
+        
+        // Max length type change handler
+        maxLengthType.addEventListener('change', () => {
+            const hasLimit = maxLengthType.value !== '';
+            maxLengthValue.disabled = !hasLimit;
+            if (!hasLimit) {
+                maxLengthValue.value = '';
+                updateLengthHint();
+            } else {
+                maxLengthValue.placeholder = maxLengthType.value === 'words' ? '50' : '200';
+                updateLengthHint();
+            }
+        });
+        maxLengthValue.addEventListener('input', () => updateLengthHint());
+
+        function estimateTokens(type, value){
+            if(!type || !value) return null;
+            const v = parseInt(value);
+            if(isNaN(v) || v <= 0) return null;
+            if(type === 'characters'){
+                // ~4 chars per token heuristic
+                return Math.max(10, Math.round(v / 4));
+            }
+            // words: ~0.75 words per token => tokens ≈ words / 0.75
+            return Math.max(10, Math.round(v / 0.75));
+        }
+
+        function updateLengthHint(){
+            const hintEl = document.getElementById('length-hint');
+            const type = maxLengthType.value;
+            const value = maxLengthValue.value;
+            if(!type || !value){
+                hintEl.style.display = 'none';
+                hintEl.textContent = '';
+                return;
+            }
+            const tokens = estimateTokens(type, value);
+            hintEl.style.display = 'block';
+            hintEl.textContent = `The model will target <= ${value} ${type} (≈ ${tokens} tokens). Output is generated to fit; no post trimming.`;
+        }
+        
+        // Generate button handler
+        generateBtn.addEventListener('click', async () => {
+            await generateCompletion(false);
+        });
+        
+        // Regenerate button handler
+        regenerateBtn.addEventListener('click', async () => {
+            await generateCompletion(true);
+        });
+        
+        // Clear results button handler
+        clearResultsBtn.addEventListener('click', () => {
+            resultsContainer.innerHTML = '';
+            resultsSection.style.display = 'none';
+            regenerateBtn.style.display = 'none';
+            lastRequest = null;
+        });
+        
+        async function generateCompletion(isRegeneration = false) {
+            const config = modeConfigs[currentMode];
+            // Mode 5: file upload
+            if (currentMode === 'mode_5') {
+                const source = document.querySelector('input[name="mode5_source"]:checked')?.value || 'file';
+                loading.classList.add('active');
+                generateBtn.disabled = true;
+                const labels = modeActionLabels[currentMode];
+                if(labels){
+                    loadingMessage.textContent = labels.loading;
+                }
+                try {
+                    const formData = new FormData();
+                    if(source === 'file'){
+                        const file = fileUpload.files[0];
+                        if (!file) {
+                            showError('Please select a document file to summarize.');
+                            throw new Error('Validation failed');
+                        }
+                        if (!['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
+                            showError('Unsupported file type. Please upload a PDF, DOCX, or TXT file.');
+                            throw new Error('Validation failed');
+                        }
+                        if (file.size > 10 * 1024 * 1024) {
+                            showError('File is too large. Max 10MB allowed.');
+                            throw new Error('Validation failed');
+                        }
+                        formData.append('file', file);
+                    } else if(source === 'gdrive'){
+                        const gdriveUrl = mode5GdriveUrl.value.trim();
+                        if(!gdriveUrl){
+                            showError('Please enter a Google Drive URL.');
+                            throw new Error('Validation failed');
+                        }
+                        // Basic URL validation
+                        if(!gdriveUrl.includes('drive.google.com') && !gdriveUrl.includes('docs.google.com')){
+                            showError('Please enter a valid Google Drive or Google Docs URL.');
+                            throw new Error('Validation failed');
+                        }
+                        formData.append('google_drive_url', gdriveUrl);
+                    } else {
+                        const rawVal = mode5RawText.value.trim();
+                        if(!rawVal){
+                            showError('Please paste some text to summarize.');
+                            throw new Error('Validation failed');
+                        }
+                        formData.append('raw_text', rawVal);
+                    }
+                    // Optional target overrides
+                    const tWords = mode5TargetWords.value.trim();
+                    if(tWords){
+                        const asInt = parseInt(tWords,10);
+                        if(isNaN(asInt) || asInt < 20){
+                            showError('Target words must be a number >= 20');
+                            throw new Error('Validation failed');
+                        }
+                        formData.append('target_words', asInt.toString());
+                    }
+                    // Optional user prompt
+                    const userPrompt = mode5UserPrompt.value.trim();
+                    if(userPrompt){
+                        if(userPrompt.length > 2000){
+                            showError('Custom prompt must not exceed 2000 characters');
+                            throw new Error('Validation failed');
+                        }
+                        formData.append('user_prompt', userPrompt);
+                    }
+                    const response = await fetch(`${API_BASE}/summarize-document`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!response.ok) {
+                        let errorMsg = 'Document summarization failed';
+                        try {
+                            const errorData = await response.json();
+                            errorMsg = errorData.detail || errorMsg;
+                        } catch {}
+                        throw new Error(errorMsg);
+                    }
+                    const result = await response.json();
+                    addResult(result.markdown_summary, 'mode_5', false);
+                } catch (err) {
+                    showError(err.message || 'An error occurred during document summarization');
+                } finally {
+                    loading.classList.remove('active');
+                    generateBtn.disabled = false;
+                }
+                return;
+            }
+            // Other modes (1-4, 6): original logic
+            // Prepare request data
+            const requestData = {
+                mode: currentMode,
+                regenerate: isRegeneration
+            };
+            // Add text if required
+            if (config.requiresText) {
+                if (!textInput.value.trim()) {
+                    showError('Please enter text input for this mode.');
+                    return;
+                }
+                requestData.text = textInput.value.trim();
+            }
+            // Add header if required  
+            if (config.requiresHeader) {
+                if (!headerInput.value.trim()) {
+                    showError('Please enter a header/topic for this mode.');
+                    return;
+                }
+                requestData.header = headerInput.value.trim();
+            }
+            // Add body if required (mode 4 JSON, mode 6 free text)
+            if (config.requiresBody) {
+                if (!bodyInput.value.trim()) {
+                    showError(currentMode === 'mode_4' ? 'Please enter body data (JSON) for this mode.' : 'Please enter a body description for this mode.');
+                    return;
+                }
+                if (currentMode === 'mode_4') {
+                    try {
+                        requestData.body = JSON.parse(bodyInput.value.trim());
+                    } catch (e) {
+                        showError('Invalid JSON format in body field.');
+                        return;
+                    }
+                } else if (currentMode === 'mode_6') {
+                    requestData.body = bodyInput.value.trim();
+                }
+            }
+            // Debug: log request payload
+            console.log('Sending payload:', requestData);
+            // Add dynamic parameters (skip for mode 5)
+            if (currentMode !== 'mode_5') {
+                if (minWordsInput.value) {
+                    requestData.min_input_words = parseInt(minWordsInput.value);
+                }
+                if (maxLengthType.value && maxLengthValue.value) {
+                    requestData.max_output_length = {
+                        type: maxLengthType.value,
+                        value: parseInt(maxLengthValue.value)
+                    };
+                }
+                // Validate minimum word count
+                const minWords = requestData.min_input_words || config.defaultMinWords;
+                if (config.requiresText && countWords(textInput.value) < minWords) {
+                    showError(`Please provide at least ${minWords} words in the text input.`);
+                    return;
+                }
+                if (config.requiresHeader && countWords(headerInput.value) < minWords) {
+                    showError(`Please provide at least ${minWords} words in the header input.`);
+                    return;
+                }
+            }
+            // Show loading state
+            loading.classList.add('active');
+            generateBtn.disabled = true;
+            regenerateBtn.disabled = true;
+            const labels = modeActionLabels[currentMode];
+            if(labels){
+                loadingMessage.textContent = labels.loading;
+            }
+            try {
+                const response = await fetch(`${API_BASE}/autocomplete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Generation failed');
+                }
+                const result = await response.json();
+                // Add result to display
+                addResult(result.completion, result.mode, isRegeneration);
+                // Store last request for regeneration
+                lastRequest = requestData;
+                // Show regenerate button if supported
+                if (config.supportsRegenerate && !isRegeneration) {
+                    regenerateBtn.style.display = 'inline-block';
+                }
+            } catch (err) {
+                showError(err.message || 'An error occurred during generation');
+            } finally {
+                // Hide loading state
+                loading.classList.remove('active');
+                generateBtn.disabled = false;
+                regenerateBtn.disabled = false;
+            }
+        }
+    // File upload element for Mode 5
+    const fileUploadGroup = document.getElementById('file-upload-group');
+    const fileUpload = document.getElementById('file-upload');
+        
+        // Initialize UI
+    updateUIForMode();
+    updateActionLabels();
+        updateCounter(textCounter, textInput.value);
+        updateCounter(headerCounter, headerInput.value);
+        if (bodyCounter) updateCounter(bodyCounter, bodyInput.value);
+        if (mode5RawCounter) updateCounter(mode5RawCounter, mode5RawText.value);
+        if (mode5PromptCounter) updatePromptCounter(mode5PromptCounter, mode5UserPrompt.value);
+        updateLengthHint();
+    </script>
+</body>
+</html>
