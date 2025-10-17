@@ -979,8 +979,8 @@
                                 <label for="input-file" class="radio-label">📁 Upload File</label>
                             </div>
                             <div class="radio-option">
-                                <input type="radio" id="input-gdrive" name="input-source" value="gdrive">
-                                <label for="input-gdrive" class="radio-label">☁️ Google Drive</label>
+                                <input type="radio" id="input-url" name="input-source" value="url">
+                                <label for="input-url" class="radio-label">🔗 Document URL</label>
                             </div>
                             <div class="radio-option">
                                 <input type="radio" id="input-text" name="input-source" value="text">
@@ -999,16 +999,16 @@
                         <div id="file-name" class="counter" style="margin-top: 0.5rem;"></div>
                     </div>
                     
-                    <div id="gdrive-input-group" class="form-group hidden">
-                        <label class="form-label">Google Drive URL</label>
+                    <div id="url-input-group" class="form-group hidden">
+                        <label class="form-label">Document URL</label>
                         <input 
                             type="url" 
-                            id="gdriveUrl" 
+                            id="documentUrl" 
                             class="form-input" 
-                            placeholder="https://docs.google.com/document/d/..."
+                            placeholder="https://example.com/document.pdf or any accessible document URL"
                         >
                         <div class="counter">
-                            <span style="color: var(--text-muted); font-size: 0.85rem;">File must be publicly accessible</span>
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">Supports Google Drive, Dropbox, OneDrive, direct links to PDF/DOCX/TXT files</span>
                         </div>
                     </div>
                     
@@ -1329,14 +1329,14 @@
         // Mode 5: Input source switching
         const inputSourceRadios = document.querySelectorAll('input[name="input-source"]');
         const fileInputGroup = document.getElementById('file-input-group');
-        const gdriveInputGroup = document.getElementById('gdrive-input-group');
+        const urlInputGroup = document.getElementById('url-input-group');
         const textInputGroupMode5 = document.getElementById('text-input-group-mode5');
         
         inputSourceRadios.forEach(radio => {
             radio.addEventListener('change', () => {
                 const source = radio.value;
                 fileInputGroup.classList.toggle('hidden', source !== 'file');
-                gdriveInputGroup.classList.toggle('hidden', source !== 'gdrive');
+                urlInputGroup.classList.toggle('hidden', source !== 'url');
                 textInputGroupMode5.classList.toggle('hidden', source !== 'text');
             });
         });
@@ -1530,20 +1530,20 @@
                 }
                 
                 formData.append('file', file);
-            } else if (source === 'gdrive') {
-                const url = document.getElementById('gdriveUrl').value.trim();
+            } else if (source === 'url') {
+                const url = document.getElementById('documentUrl').value.trim();
                 if (!url) {
-                    showStatus('error', 'Please enter a Google Drive URL.');
+                    showStatus('error', 'Please enter a document URL.');
                     return;
                 }
                 
-                // Validate Google Drive URL
-                if (!url.includes('drive.google.com') && !url.includes('docs.google.com')) {
-                    showStatus('error', 'Please enter a valid Google Drive or Google Docs URL.');
+                // Use permissive URL validator that allows SharePoint/OneDrive/Dropbox formats
+                const normalized = isValidDocumentUrl(url);
+                if (!normalized) {
+                    showStatus('error', 'Please enter a valid accessible document URL (PDF, DOCX, TXT).');
                     return;
                 }
-                
-                formData.append('google_drive_url', url);
+                formData.append('document_url', normalized);
             } else {
                 const text = rawText.value.trim();
                 if (!text) {
@@ -1687,6 +1687,43 @@
                 <span class="metadata-value" ${color ? `style="color: ${color}"` : ''}>${value}</span>
             `;
             metadataContainer.appendChild(item);
+        }
+
+        // Permissive document URL validator for Mode 5
+        // Accepts most http/https URLs and auto-adds https:// if missing.
+        // Returns normalized URL string or null if invalid.
+        function isValidDocumentUrl(input) {
+            if (!input) return null;
+            let url = input.trim();
+            // Add protocol if missing
+            if (!/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
+            }
+            try {
+                const parsed = new URL(url);
+                // Basic host check
+                if (!parsed.hostname || !parsed.hostname.includes('.')) return null;
+
+                // Disallow clearly unsupported schemes or localhost for summarization
+                if (['localhost', '127.0.0.1'].includes(parsed.hostname)) return null;
+
+                // Optional: allow only http/https
+                if (!/^https?$/i.test(parsed.protocol.replace(':',''))) return null;
+
+                // Heuristic: must have something after host (path or query) OR known cloud host
+                const host = parsed.hostname.toLowerCase();
+                const path = parsed.pathname || '';
+                const knownCloudHosts = ['sharepoint.com','onedrive.live.com','1drv.ms','dropbox.com','box.com','drive.google.com','docs.google.com'];
+                const looksLikeDocExt = /\.(pdf|docx?|txt)$/i.test(path);
+                const sharePointSpecial = host.includes('sharepoint.com') && /:\w:\//.test(path); // matches /:w:/, /:b:/ etc.
+                if (!looksLikeDocExt && !sharePointSpecial && path.length < 2 && !knownCloudHosts.some(h=>host.includes(h))) {
+                    return null;
+                }
+
+                return parsed.toString();
+            } catch (e) {
+                return null;
+            }
         }
         
         // Status messages
