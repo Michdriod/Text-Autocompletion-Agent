@@ -1853,7 +1853,13 @@
                 let combinedOutput = '# Multiple Summaries\n\n';
                 data.summaries.forEach((item, index) => {
                     combinedOutput += `## Row ${index + 1}: ${item.id}\n\n`;
-                    combinedOutput += item.summary + '\n\n';
+                    if (item.error) {
+                        combinedOutput += `**Error:** ${item.error}\n\n`;
+                    } else if (item.result && item.result.markdown_summary) {
+                        combinedOutput += item.result.markdown_summary + '\n\n';
+                    } else {
+                        combinedOutput += '*No summary available*\n\n';
+                    }
                     combinedOutput += '---\n\n';
                 });
                 outputResult.innerHTML = marked.parse(combinedOutput);
