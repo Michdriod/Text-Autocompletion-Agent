@@ -43,6 +43,14 @@ PDF_MIN_CHARS_PER_PAGE: int = 120
 MAX_PROMPT_LENGTH: int = 2000  # characters
 
 
+# PostgreSQL adapter configuration (server-side credentials only)
+# Template for read-only database connections. The {db} placeholder will be substituted
+# with the client-provided database name. Example:
+#   POSTGRES_READONLY_DSN_TEMPLATE = "postgresql://readonly_user:password@db-host:5432/{db}"
+# Set this in your environment or override here. Clients never send credentials.
+POSTGRES_READONLY_DSN_TEMPLATE: str | None = "postgresql://postgres:michwaleh@localhost:5432/{db}"
+
+
 # def summary_target_words(original_words: int, ratio: float | None = None) -> int:
 # 	"""Compute the word target for the final summary.
 

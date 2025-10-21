@@ -986,6 +986,10 @@
                                 <input type="radio" id="input-text" name="input-source" value="text">
                                 <label for="input-text" class="radio-label">📝 Paste Text</label>
                             </div>
+                            <div class="radio-option">
+                                <input type="radio" id="input-postgres" name="input-source" value="postgres">
+                                <label for="input-postgres" class="radio-label">🗄️ PostgreSQL</label>
+                            </div>
                         </div>
                     </div>
                     
@@ -1029,6 +1033,159 @@
                                 <span id="mode5-text-counter">0 words</span>
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- PostgreSQL Input Group -->
+                    <div id="postgres-input-group" class="form-group hidden">
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--accent-blue);">
+                            <h4 style="margin: 0 0 0.5rem 0; color: var(--accent-blue); font-size: 0.95rem;">📘 How to Use PostgreSQL Source</h4>
+                            <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                                Enter your <strong>database name</strong> and <strong>table name</strong> from your PostgreSQL database. 
+                                Then specify which <strong>column contains the ID</strong> (like incident_id) and which <strong>column contains the text</strong> you want to summarize (like description).
+                                You can optionally add a <strong>context column</strong> (like title) to improve summary quality.
+                            </p>
+                        </div>
+                        
+                        <label class="form-label">📊 Query Mode</label>
+                        <div class="radio-group" style="margin-bottom: 1.5rem;">
+                            <div class="radio-option">
+                                <input type="radio" id="pg-mode-single" name="pg-mode" value="single" checked>
+                                <label for="pg-mode-single" class="radio-label" title="Summarize one specific row">
+                                    📄 Single Row
+                                </label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="pg-mode-per-row" name="pg-mode" value="per_row">
+                                <label for="pg-mode-per-row" class="radio-label" title="Get separate summaries for multiple rows">
+                                    📚 Per Row
+                                </label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="pg-mode-aggregate" name="pg-mode" value="aggregate">
+                                <label for="pg-mode-aggregate" class="radio-label" title="Combine multiple rows into one summary">
+                                    🔀 Aggregate
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div style="background: var(--bg-card); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                            <h4 style="margin: 0 0 1rem 0; color: var(--text-primary); font-size: 0.9rem;">🗄️ Database Connection</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label class="form-label">Database Name <span style="color: var(--error);">*</span></label>
+                                    <input type="text" id="pgDatabase" class="form-input" placeholder="my_company_db" required>
+                                    <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">The name of your PostgreSQL database</div>
+                                </div>
+                                <div>
+                                    <label class="form-label">Table Name <span style="color: var(--error);">*</span></label>
+                                    <input type="text" id="pgTable" class="form-input" placeholder="incidents" required>
+                                    <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">The table containing your data</div>
+                                </div>
+                            </div>
+                            
+                            <h4 style="margin: 1rem 0 1rem 0; color: var(--text-primary); font-size: 0.9rem;">📋 Column Mapping</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label class="form-label">ID Column <span style="color: var(--error);">*</span></label>
+                                    <input type="text" id="pgIdColumn" class="form-input" placeholder="incident_id" required>
+                                    <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">Column with unique identifiers</div>
+                                </div>
+                                <div>
+                                    <label class="form-label">Text Column <span style="color: var(--error);">*</span></label>
+                                    <input type="text" id="pgTextColumn" class="form-input" placeholder="description" required>
+                                    <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">Column with text to summarize</div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="form-label">Context Column <span style="color: var(--text-muted);">(Optional)</span></label>
+                                <input type="text" id="pgContextColumn" class="form-input" placeholder="title">
+                                <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">
+                                    💡 Add a column like "title" or "category" to provide context for better summaries
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Single Row Mode Fields -->
+                        <div id="pg-single-fields" style="background: var(--bg-card); padding: 1rem; border-radius: 8px;">
+                            <h4 style="margin: 0 0 0.75rem 0; color: var(--text-primary); font-size: 0.9rem;">🎯 Select Row</h4>
+                            <label class="form-label">Row ID Value <span style="color: var(--error);">*</span></label>
+                            <input type="text" id="pgIdValue" class="form-input" placeholder="INC_01, 12345, or any ID from your ID column" required>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem;">
+                                Enter the exact ID of the row you want to summarize
+                            </div>
+                        </div>
+                        
+                        <!-- Range Mode Fields (Per Row / Aggregate) -->
+                        <div id="pg-range-fields" class="hidden" style="background: var(--bg-card); padding: 1rem; border-radius: 8px;">
+                            <h4 style="margin: 0 0 0.75rem 0; color: var(--text-primary); font-size: 0.9rem;">📊 Select Range</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label class="form-label">Start ID <span style="color: var(--error);">*</span></label>
+                                    <input type="text" id="pgIdStart" class="form-input" placeholder="INC_01">
+                                    <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">First row ID</div>
+                                </div>
+                                <div>
+                                    <label class="form-label">End ID <span style="color: var(--error);">*</span></label>
+                                    <input type="text" id="pgIdEnd" class="form-input" placeholder="INC_10">
+                                    <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">Last row ID</div>
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px; margin-top: 1rem; border-left: 3px solid var(--accent-blue);">
+                                <div style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5;">
+                                    <strong style="color: var(--accent-blue);">📚 Per Row:</strong> Creates a separate summary for each row between Start and End ID<br>
+                                    <strong style="color: var(--accent-purple);">🔀 Aggregate:</strong> Combines all rows between Start and End ID into one comprehensive summary
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Example Guide -->
+                        <details style="margin-top: 1rem; background: var(--bg-secondary); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <summary style="cursor: pointer; color: var(--accent-blue); font-weight: 600; font-size: 0.9rem; user-select: none;">
+                                📖 Show Example
+                            </summary>
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                                    If your database table looks like this:
+                                </p>
+                                <div style="background: var(--bg-card); padding: 0.75rem; border-radius: 6px; font-family: monospace; font-size: 0.8rem; overflow-x: auto; margin-bottom: 1rem;">
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                        <tr style="color: var(--accent-blue); border-bottom: 1px solid var(--border-color);">
+                                            <th style="padding: 0.5rem; text-align: left;">incident_id</th>
+                                            <th style="padding: 0.5rem; text-align: left;">title</th>
+                                            <th style="padding: 0.5rem; text-align: left;">description</th>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid var(--border-color);">
+                                            <td style="padding: 0.5rem; color: var(--success);">INC_01</td>
+                                            <td style="padding: 0.5rem;">Server Down</td>
+                                            <td style="padding: 0.5rem; color: var(--text-muted);">Production server crashed...</td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid var(--border-color);">
+                                            <td style="padding: 0.5rem; color: var(--success);">INC_02</td>
+                                            <td style="padding: 0.5rem;">Login Issue</td>
+                                            <td style="padding: 0.5rem; color: var(--text-muted);">Users can't login...</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 0.5rem; color: var(--success);">INC_03</td>
+                                            <td style="padding: 0.5rem;">Network Error</td>
+                                            <td style="padding: 0.5rem; color: var(--text-muted);">Network timeout issues...</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                    You would fill in:
+                                </p>
+                                <ul style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.8; margin-left: 1.5rem;">
+                                    <li><strong>Database Name:</strong> <code style="background: var(--bg-card); padding: 0.15rem 0.4rem; border-radius: 3px;">my_company_db</code></li>
+                                    <li><strong>Table Name:</strong> <code style="background: var(--bg-card); padding: 0.15rem 0.4rem; border-radius: 3px;">incidents</code></li>
+                                    <li><strong>ID Column:</strong> <code style="background: var(--bg-card); padding: 0.15rem 0.4rem; border-radius: 3px;">incident_id</code></li>
+                                    <li><strong>Text Column:</strong> <code style="background: var(--bg-card); padding: 0.15rem 0.4rem; border-radius: 3px;">description</code></li>
+                                    <li><strong>Context Column:</strong> <code style="background: var(--bg-card); padding: 0.15rem 0.4rem; border-radius: 3px;">title</code> <span style="color: var(--text-muted);">(optional)</span></li>
+                                    <li><strong>Row ID (Single):</strong> <code style="background: var(--bg-card); padding: 0.15rem 0.4rem; border-radius: 3px;">INC_01</code></li>
+                                    <li><strong>Range (Per Row/Aggregate):</strong> <code style="background: var(--bg-card); padding: 0.15rem 0.4rem; border-radius: 3px;">INC_01</code> to <code style="background: var(--bg-card); padding: 0.15rem 0.4rem; border-radius: 3px;">INC_03</code></li>
+                                </ul>
+                            </div>
+                        </details>
                     </div>
                     
                     <div class="form-group">
@@ -1331,6 +1488,7 @@
         const fileInputGroup = document.getElementById('file-input-group');
         const urlInputGroup = document.getElementById('url-input-group');
         const textInputGroupMode5 = document.getElementById('text-input-group-mode5');
+        const postgresInputGroup = document.getElementById('postgres-input-group');
         
         inputSourceRadios.forEach(radio => {
             radio.addEventListener('change', () => {
@@ -1338,6 +1496,21 @@
                 fileInputGroup.classList.toggle('hidden', source !== 'file');
                 urlInputGroup.classList.toggle('hidden', source !== 'url');
                 textInputGroupMode5.classList.toggle('hidden', source !== 'text');
+                postgresInputGroup.classList.toggle('hidden', source !== 'postgres');
+            });
+        });
+        
+        // PostgreSQL: Mode switching (single vs range)
+        const pgModeRadios = document.querySelectorAll('input[name="pg-mode"]');
+        const pgSingleFields = document.getElementById('pg-single-fields');
+        const pgRangeFields = document.getElementById('pg-range-fields');
+        
+        pgModeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const mode = radio.value;
+                const isRange = mode === 'per_row' || mode === 'aggregate';
+                pgSingleFields.classList.toggle('hidden', isRange);
+                pgRangeFields.classList.toggle('hidden', !isRange);
             });
         });
         
@@ -1544,6 +1717,51 @@
                     return;
                 }
                 formData.append('document_url', normalized);
+            } else if (source === 'postgres') {
+                // PostgreSQL source
+                const pgMode = document.querySelector('input[name="pg-mode"]:checked').value;
+                const pgDatabase = document.getElementById('pgDatabase').value.trim();
+                const pgTable = document.getElementById('pgTable').value.trim();
+                const pgIdColumn = document.getElementById('pgIdColumn').value.trim();
+                const pgTextColumn = document.getElementById('pgTextColumn').value.trim();
+                const pgContextColumn = document.getElementById('pgContextColumn').value.trim();
+                
+                // Validate required fields
+                if (!pgDatabase || !pgTable || !pgIdColumn || !pgTextColumn) {
+                    showStatus('error', 'Please fill in all required PostgreSQL fields (database, table, ID column, text column).');
+                    return;
+                }
+                
+                formData.append('pg_db', pgDatabase);
+                formData.append('pg_table', pgTable);
+                formData.append('pg_id_column', pgIdColumn);
+                formData.append('pg_text_column', pgTextColumn);
+                formData.append('pg_mode', pgMode);
+                
+                if (pgContextColumn) {
+                    formData.append('pg_context_column', pgContextColumn);
+                }
+                
+                if (pgMode === 'single') {
+                    const pgIdValue = document.getElementById('pgIdValue').value.trim();
+                    if (!pgIdValue) {
+                        showStatus('error', 'Please enter a row ID value for single mode.');
+                        return;
+                    }
+                    formData.append('pg_id_value', pgIdValue);
+                } else {
+                    // per_row or aggregate modes
+                    const pgIdStart = document.getElementById('pgIdStart').value.trim();
+                    const pgIdEnd = document.getElementById('pgIdEnd').value.trim();
+                    
+                    if (!pgIdStart || !pgIdEnd) {
+                        showStatus('error', 'Please enter both start and end IDs for range mode.');
+                        return;
+                    }
+                    
+                    formData.append('pg_id_start', pgIdStart);
+                    formData.append('pg_id_end', pgIdEnd);
+                }
             } else {
                 const text = rawText.value.trim();
                 if (!text) {
@@ -1630,6 +1848,15 @@
             if (data.completion) {
                 // Autocomplete endpoint returns "completion"
                 outputResult.innerHTML = marked.parse(data.completion);
+            } else if (data.summaries) {
+                // PostgreSQL per_row mode returns array of summaries
+                let combinedOutput = '# Multiple Summaries\n\n';
+                data.summaries.forEach((item, index) => {
+                    combinedOutput += `## Row ${index + 1}: ${item.id}\n\n`;
+                    combinedOutput += item.summary + '\n\n';
+                    combinedOutput += '---\n\n';
+                });
+                outputResult.innerHTML = marked.parse(combinedOutput);
             } else if (data.markdown_summary) {
                 // Summarize endpoint returns "markdown_summary"
                 outputResult.innerHTML = marked.parse(data.markdown_summary);

@@ -119,8 +119,14 @@ STRUCTURE:
 
         return f"{base_instruction}\n\n{word_guidance}\n\n{format_instruction}"
 
-    def _build_user_message(self, text: str, user_prompt: Optional[str] = None) -> str:
-        """Build user message with document text and optional custom instructions."""
+    def _build_user_message(self, text: str, target_words: Optional[int] = None, user_prompt: Optional[str] = None) -> str:
+        """Build user message with document text, explicit word count, and optional custom instructions.
+        
+        Logic:
+        - If user_prompt contains a word count (e.g., "in 50 words"), that takes precedence
+        - Otherwise, use target_words parameter
+        - Make the word count EXPLICIT and PROMINENT in the user message for better compliance
+        """
         
         base_message = f"""Please analyze and summarize the following document according to the instructions provided.
 
@@ -128,21 +134,73 @@ DOCUMENT TEXT:
 {text}
 
 ---
+"""
 
-🎯 MANDATORY REQUIREMENTS FOR YOUR SUMMARY:
-1. STRICTLY adhere to the target word count specified in the system instructions
-2. Capture all essential information with maximum information density
-3. Maintain well-structured, logical flow
-4. Complete all sentences properly - NO truncation
-5. End gracefully when approaching the word limit
-6. The word count target is MANDATORY and must be respected
-
-⚠️ REMINDER: The specified word count is NOT optional - it is a strict requirement."""
-
+        # Check if user_prompt has a word count instruction
+        has_user_word_count = False
         if user_prompt:
-            base_message += f"\n\n📋 ADDITIONAL USER INSTRUCTIONS:\n{user_prompt}\n\n⚠️ NOTE: If the user instructions specify a word count, that word count is MANDATORY and takes precedence over any parameter."
-        
-        base_message += "\n\n✍️ Begin your summary now (remember: strict adherence to word count target):"
+            # Simple check for word count patterns in user prompt
+            import re
+            word_count_pattern = r'\b(\d+)\s*words?\b'
+            if re.search(word_count_pattern, user_prompt.lower()):
+                has_user_word_count = True
+
+        # Build word count instruction based on priority
+        if user_prompt and has_user_word_count:
+            # User prompt has word count - let it take precedence
+            base_message += f"""📋 USER INSTRUCTIONS:
+{user_prompt}
+
+⚠️ CRITICAL: Your custom instruction above contains a word count requirement. That word count is MANDATORY and MUST be followed exactly.
+
+"""
+        elif target_words:
+            # No user word count, use target_words parameter - MAKE IT EXPLICIT
+            min_acceptable = int(target_words * 0.95)
+            max_acceptable = int(target_words * 1.05)
+            base_message += f"""🎯 MANDATORY WORD COUNT REQUIREMENT:
+
+YOUR SUMMARY MUST BE EXACTLY {target_words} WORDS (±5% maximum)
+
+Acceptable range: {min_acceptable} to {max_acceptable} words
+THIS IS NOT A SUGGESTION - IT IS A STRICT REQUIREMENT
+
+"""
+            # Add user prompt if present (without word count)
+            if user_prompt:
+                base_message += f"""📋 ADDITIONAL USER INSTRUCTIONS:
+{user_prompt}
+
+"""
+        else:
+            # No word count specified anywhere - comprehensive summary
+            base_message += """📋 SUMMARY REQUIREMENTS:
+Create a comprehensive summary that captures all essential information.
+No specific word count target - focus on completeness and clarity.
+
+"""
+            if user_prompt:
+                base_message += f"""ADDITIONAL USER INSTRUCTIONS:
+{user_prompt}
+
+"""
+
+        # Common requirements for all scenarios
+        base_message += """🎯 MANDATORY REQUIREMENTS FOR YOUR SUMMARY:
+1. Capture all essential information with maximum information density
+2. Maintain well-structured, logical flow
+3. Complete all sentences properly - NO mid-sentence truncation
+4. End gracefully when approaching any word limit
+5. Use clear, professional language
+"""
+
+        if target_words or (user_prompt and has_user_word_count):
+            base_message += f"""
+⚠️ FINAL REMINDER: The word count target is MANDATORY and MUST be respected strictly.
+Plan your content allocation BEFORE writing to ensure you hit the target.
+"""
+
+        base_message += "\n✍️ Begin your summary now:"
         
         return base_message
 
@@ -391,7 +449,7 @@ OUTPUT FORMAT: {output_format}
             
             # Build prompts with attempt-specific adjustments
             system_prompt = self._build_consistent_system_prompt(target_words, output_format, attempt, min_acceptable, max_acceptable)
-            user_message = self._build_user_message(content, user_prompt)
+            user_message = self._build_user_message(content, target_words=target_words, user_prompt=user_prompt)
             
             # Calculate conservative token budget for consistent output
             token_budget = self._calculate_consistent_token_budget(target_words)
