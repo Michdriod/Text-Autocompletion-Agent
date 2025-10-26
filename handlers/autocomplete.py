@@ -24,7 +24,7 @@ router = APIRouter()
 
 # Define available enrichment modes
 class ModeType(str, Enum):
-    mode_1 = "mode_1"  # Context-Aware Regenerative Completion
+    mode_1 = "mode_1"  # Intelligent Text Autocomplete
     mode_2 = "mode_2"  # Structured Context Enrichment
     mode_3 = "mode_3"  # Input Refinement
     mode_4 = "mode_4"  # Description Agent
@@ -90,12 +90,12 @@ async def autocomplete(request: AutocompleteRequest):
             if not request.text:
                 raise HTTPException(
                     status_code=422,
-                    detail="Text input is required for Context-Aware Regenerative Completion mode."
+                    detail="Text input is required for Intelligent Text Autocomplete mode."
                 )
             if not validate_minimum_word_count(request.text, request.mode, min_words):
                 raise HTTPException(
                     status_code=422,
-                    detail=f"Please provide at least {min_words} words for Context-Aware Regenerative Completion."
+                    detail=f"Please provide at least {min_words} words for Intelligent Text Autocomplete."
                 )
 
         # Validation for Mode 3
@@ -301,7 +301,7 @@ async def health_check():
     return {
         "status": "ok", 
         "modes": {
-            "mode_1": "Context-Aware Regenerative Completion",
+            "mode_1": "Intelligent Text Autocomplete",
             "mode_2": "Structured Context Enrichment",
             "mode_3": "Input Refinement",
             "mode_4": "Description Agent",

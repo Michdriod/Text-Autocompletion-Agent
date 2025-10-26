@@ -54,8 +54,8 @@ async def root():
         "modes": [
             {
                 "id": "mode_1",
-                "name": "Context-Aware Completion",
-                "description": "Intelligent text continuation based on context"
+                "name": "Intelligent Text Autocomplete",
+                "description": "Continues your writing based on context, tone, and style"
             },
             {
                 "id": "mode_2", 
