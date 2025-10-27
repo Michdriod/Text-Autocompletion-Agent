@@ -1,4 +1,5 @@
-"""Output formatter (Step 9): produce final JSON in markdown, plain text, or both."""
+"""Output formatter (Step 9): produce final JSON in markdown, plain text, html, or combinations."""
+
 from __future__ import annotations
 from typing import Dict, List
 import re
@@ -96,6 +97,180 @@ def markdown_to_plain(md: str) -> str:
     return plain.strip()
 
 
+def markdown_to_html(md: str) -> str:
+    """Convert Markdown to clean HTML.
+    
+    Converts common markdown elements to HTML:
+    - Headers (# ## ###) -> <h1> <h2> <h3>
+    - Bold (**text**) -> <strong>text</strong>
+    - Italic (*text*) -> <em>text</em>
+    - Lists (- item) -> <ul><li>item</li></ul>
+    - Numbered lists (1. item) -> <ol><li>item</li></ol>
+    - Code blocks (```code```) -> <pre><code>code</code></pre>
+    - Inline code (`code`) -> <code>code</code>
+    - Blockquotes (> text) -> <blockquote><p>text</p></blockquote>
+    - Links ([text](url)) -> <a href="url">text</a>
+    - Paragraphs -> <p>text</p>
+    """
+    
+    text = md.replace('\r\n', '\n')
+    
+    # Extract and replace code blocks first
+    code_blocks: List[str] = []
+    def _code_repl(match: re.Match) -> str:
+        lang = match.group(1) or ""
+        code = match.group(2).rstrip()
+        code_blocks.append(code)
+        return f"\n [[CODE_BLOCK_{len(code_blocks)-1}]]\n"
+    
+    text = re.sub(r"```([a-zA-Z0-9_+-]*)\n([\s\S]*?)```", _code_repl, text)
+    
+    lines = text.split('\n')
+    html_lines = []
+    in_list = False
+    in_ordered_list = False
+    list_items = []
+    
+    i = 0
+    while i < len(lines):
+        line = lines[i].rstrip()
+        
+        # Empty line
+        if not line.strip():
+            # Close any open lists
+            if in_list:
+                html_lines.append(f"<ul>{''.join(list_items)}</ul>")
+                list_items = []
+                in_list = False
+            elif in_ordered_list:
+                html_lines.append(f"<ol>{''.join(list_items)}</ol>")
+                list_items = []
+                in_ordered_list = False
+            html_lines.append("")
+            i += 1
+            continue
+        
+        # Headers
+        header_match = re.match(r"^(#{1,6})\s+(.+)", line)
+        if header_match:
+            level = len(header_match.group(1))
+            content = header_match.group(2)
+            html_lines.append(f"<h{level}>{content}</h{level}>")
+            i += 1
+            continue
+        
+        # Blockquotes
+        if line.startswith('> '):
+            content = line[2:]
+            html_lines.append(f"<blockquote><p>{_format_inline(content)}</p></blockquote>")
+            i += 1
+            continue
+        
+        # Unordered lists
+        ul_match = re.match(r"^\s*[-*+]\s+(.+)", line)
+        if ul_match:
+            if in_ordered_list:
+                html_lines.append(f"<ol>{''.join(list_items)}</ol>")
+                list_items = []
+                in_ordered_list = False
+            
+            content = ul_match.group(1)
+            list_items.append(f"<li>{_format_inline(content)}</li>")
+            in_list = True
+            i += 1
+            continue
+        
+        # Ordered lists
+        ol_match = re.match(r"^\s*\d+\.\s+(.+)", line)
+        if ol_match:
+            if in_list:
+                html_lines.append(f"<ul>{''.join(list_items)}</ul>")
+                list_items = []
+                in_list = False
+            
+            content = ol_match.group(1)
+            list_items.append(f"<li>{_format_inline(content)}</li>")
+            in_ordered_list = True
+            i += 1
+            continue
+        
+        # Regular paragraph
+        if in_list:
+            html_lines.append(f"<ul>{''.join(list_items)}</ul>")
+            list_items = []
+            in_list = False
+        elif in_ordered_list:
+            html_lines.append(f"<ol>{''.join(list_items)}</ol>")
+            list_items = []
+            in_ordered_list = False
+        
+        # Skip table separators
+        if re.match(r"^\s*\|?\s*:?-{3,}.*", line):
+            i += 1
+            continue
+        
+        # Handle tables
+        if '|' in line:
+            cells = [c.strip() for c in line.strip().strip('|').split('|')]
+            row_html = ''.join(f"<td>{_format_inline(cell)}</td>" for cell in cells)
+            html_lines.append(f"<tr>{row_html}</tr>")
+        else:
+            # Regular paragraph
+            html_lines.append(f"<p>{_format_inline(line)}</p>")
+        
+        i += 1
+    
+    # Close any remaining lists
+    if in_list:
+        html_lines.append(f"<ul>{''.join(list_items)}</ul>")
+    elif in_ordered_list:
+        html_lines.append(f"<ol>{''.join(list_items)}</ol>")
+    
+    html = '\n'.join(html_lines)
+    
+    # Reinsert code blocks
+    def _insert_code(match: re.Match) -> str:
+        idx = int(match.group(1))
+        code = code_blocks[idx]
+        # Escape HTML in code
+        code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        return f"<pre><code>{code}</code></pre>"
+    
+    html = re.sub(r"\[\[CODE_BLOCK_(\d+)]]", _insert_code, html)
+    
+    # Clean up extra whitespace while preserving content
+    html = re.sub(r"\n{3,}", "\n\n", html)  # Limit to double newlines max
+    html = re.sub(r">\s+<", "><", html)     # Remove spaces between tags
+    
+    return html.strip()
+
+
+
+def _format_inline(text: str) -> str:
+   """Format inline markdown elements like bold, italic, code, links."""
+   # Bold
+   text = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", text)
+   text = re.sub(r"__(.*?)__", r"<strong>\1</strong>", text)
+   
+   # Italic
+   text = re.sub(r"\*(.*?)\*", r"<em>\1</em>", text)
+   text = re.sub(r"_(.*?)_", r"<em>\1</em>", text)
+   
+   # Strikethrough
+   text = re.sub(r"~~(.*?)~~", r"<del>\1</del>", text)
+   
+   # Inline code
+   text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
+   
+   # Links
+   text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', text)
+   
+   # Escape remaining HTML
+   text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+   
+   return text 
+
+
 def format_output(
     finalized: FinalizedSummary,
     original_words: int,
@@ -103,7 +278,7 @@ def format_output(
 ) -> Dict[str, object]:
     """Return summary and metadata in requested format.
 
-    output_format may be one of: 'markdown', 'plain', 'both'.
+    output_format may be one of: 'markdown', 'plain', 'html', 'both' 'all'.
     """
     percent = finalized.summary_words / float(original_words) if original_words else 1.0
     base: Dict[str, object] = {
@@ -115,11 +290,17 @@ def format_output(
     md = finalized.text
     if fmt == "markdown":
         base["markdown_summary"] = md
+    elif fmt =="html":
+        base["html_summary"] = markdown_to_html(md)
     elif fmt == "plain":
         base["plain_summary"] = markdown_to_plain(md)
     elif fmt == "both":
         base["markdown_summary"] = md
         base["plain_summary"] = markdown_to_plain(md)
+    elif fmt =="all":
+        base["markdown_summary"] = md
+        base["plain_summary"] = markdown_to_plain(md)
+        base["html_summary"] = markdown_to_html(md)
     else:
         # Fallback to markdown if unknown
         base["markdown_summary"] = md
@@ -127,4 +308,4 @@ def format_output(
         base["meta"]["output_format_warning"] = f"Unknown format '{output_format}', defaulted to markdown."
     return base
 
-__all__ = ["format_output", "markdown_to_plain"]
+__all__ = ["format_output", "markdown_to_plain", "markdown_to_html"]

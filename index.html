@@ -934,6 +934,33 @@
                             >
                         </div>
                         
+                        <!-- Output Format Selection (Mode 2 only) -->
+                        <div class="form-group hidden" id="output-format-group">
+                            <label class="form-label">Output Format</label>
+                            <div class="radio-group">
+                                <div class="radio-option">
+                                    <input type="radio" id="format-markdown" name="output-format" value="markdown" checked>
+                                    <label for="format-markdown" class="radio-label">📝 Markdown</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="format-plain" name="output-format" value="plain">
+                                    <label for="format-plain" class="radio-label">📄 Plain Text</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="format-html" name="output-format" value="html">
+                                    <label for="format-html" class="radio-label">🌐 HTML</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="format-both" name="output-format" value="both">
+                                    <label for="format-both" class="radio-label">📝📄 Markdown + Plain</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="format-all" name="output-format" value="all">
+                                    <label for="format-all" class="radio-label">🎯 All Formats</label>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label class="form-label">Output Length Limit (Optional)</label>
                             <div class="radio-group" style="margin-bottom: 1rem;">
@@ -1223,7 +1250,9 @@
                         <select id="outputFormat" class="form-select">
                             <option value="markdown">Markdown</option>
                             <option value="plain">Plain Text</option>
-                            <option value="both">Both</option>
+                            <option value="html">HTML</option>
+                            <option value="both">Markdown + Plain</option>
+                            <option value="all">All Formats</option>
                         </select>
                     </div>
                     
@@ -1355,6 +1384,10 @@
                 headerInputGroup.classList.toggle('hidden', !config.requiresHeader);
                 bodyInputGroup.classList.toggle('hidden', !config.requiresBody);
                 parametersSection.classList.toggle('hidden', false);
+                
+                // Show/hide output format selector for Mode 2 only
+                const outputFormatGroup = document.getElementById('output-format-group');
+                outputFormatGroup.classList.toggle('hidden', mode !== 'mode_2');
                 
                 // Update placeholders
                 const headerInput = document.getElementById('headerInput');
@@ -1582,6 +1615,14 @@
                 mode: currentMode,
                 min_input_words: parseInt(minWords.value)
             };
+            
+            // Add output format for Mode 2
+            if (currentMode === 'mode_2') {
+                const selectedFormat = document.querySelector('input[name="output-format"]:checked');
+                if (selectedFormat) {
+                    data.output_format = selectedFormat.value;
+                }
+            }
             
             // Add max output length only if specified (optional)
             const selectedLengthType = document.querySelector('input[name="length-type"]:checked').value;
@@ -1845,8 +1886,8 @@
             document.getElementById('result-time').textContent = `⏱️ ${elapsed}s`;
             
             // Display output based on response structure
-            if (data.completion) {
-                // Autocomplete endpoint returns "completion"
+            if (data.completion && (!data.markdown_summary && !data.plain_summary && !data.html_summary)) {
+                // Standard autocomplete endpoint returns "completion" (markdown by default)
                 outputResult.innerHTML = marked.parse(data.completion);
             } else if (data.summaries) {
                 // PostgreSQL per_row mode returns array of summaries
@@ -1863,9 +1904,9 @@
                     combinedOutput += '---\n\n';
                 });
                 outputResult.innerHTML = marked.parse(combinedOutput);
-            } else if (data.markdown_summary) {
-                // Summarize endpoint returns "markdown_summary"
-                outputResult.innerHTML = marked.parse(data.markdown_summary);
+            } else if (data.markdown_summary || data.plain_summary || data.html_summary) {
+                // Summarize endpoint returns format-specific summaries
+                displayFormattedSummary(data);
             } else if (data.document) {
                 outputResult.innerHTML = marked.parse(data.document);
             } else {
@@ -1884,8 +1925,14 @@
                 hasMetadata = true;
             }
             
+            // Add output format metadata for Mode 2
+            if (data.output_format) {
+                addMetadata('Output Format', data.output_format.toUpperCase());
+                hasMetadata = true;
+            }
+            
             // Calculate word/character count from output (now in collapsible section)
-            let outputText = data.completion || data.markdown_summary || data.document || '';
+            let outputText = data.completion || data.markdown_summary || data.plain_summary || data.html_summary || data.document || '';
             if (outputText) {
                 const words = outputText.trim().split(/\s+/).filter(w => w.length > 0).length;
                 const chars = outputText.length;
@@ -1910,6 +1957,83 @@
             } else {
                 metadataWrapper.style.display = 'none';
             }
+        }
+        
+        function displayFormattedSummary(data) {
+            // Determine what formats we have
+            const hasMarkdown = data.markdown_summary;
+            const hasPlain = data.plain_summary;
+            const hasHtml = data.html_summary;
+            
+            // Count available formats
+            const formats = [];
+            if (hasMarkdown) formats.push('markdown');
+            if (hasPlain) formats.push('plain');
+            if (hasHtml) formats.push('html');
+            
+            if (formats.length === 1) {
+                // Single format - display directly
+                if (hasMarkdown) {
+                    outputResult.innerHTML = marked.parse(data.markdown_summary);
+                } else if (hasPlain) {
+                    outputResult.innerHTML = `<pre style="white-space: pre-wrap; font-family: inherit;">${escapeHtml(data.plain_summary)}</pre>`;
+                } else if (hasHtml) {
+                    outputResult.innerHTML = data.html_summary;
+                }
+            } else {
+                // Multiple formats - show all with headers
+                let combinedOutput = '';
+                
+                if (hasMarkdown) {
+                    combinedOutput += `
+                        <div style="margin-bottom: 2rem;">
+                            <h4 style="color: var(--accent-blue); margin-bottom: 1rem; display: flex; align-items: center;">
+                                📝 <span style="margin-left: 0.5rem;">Markdown Format</span>
+                            </h4>
+                            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--accent-blue);">
+                                ${marked.parse(data.markdown_summary)}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (hasPlain) {
+                    combinedOutput += `
+                        <div style="margin-bottom: 2rem;">
+                            <h4 style="color: var(--accent-purple); margin-bottom: 1rem; display: flex; align-items: center;">
+                                📄 <span style="margin-left: 0.5rem;">Plain Text Format</span>
+                            </h4>
+                            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--accent-purple);">
+                                <pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">${escapeHtml(data.plain_summary)}</pre>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (hasHtml) {
+                    combinedOutput += `
+                        <div style="margin-bottom: 2rem;">
+                            <h4 style="color: var(--success); margin-bottom: 1rem; display: flex; align-items: center;">
+                                🌐 <span style="margin-left: 0.5rem;">HTML Format</span>
+                            </h4>
+                            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--success);">
+                                ${data.html_summary}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                outputResult.innerHTML = combinedOutput;
+            }
+        }
+        
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
         
         function addMetadata(label, value, color = null) {

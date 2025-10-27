@@ -44,78 +44,194 @@ class Mode5:
     def _build_system_prompt(self, target_words: Optional[int], output_format: str = "markdown") -> str:
         """Build system prompt for document summarization with intelligent word targeting."""
         
-        base_instruction = """You are an expert document analyst and summarizer with exceptional ability to distill complex information into clear, comprehensive summaries.
+        base_instruction = """You are an expert document summarization specialist. Your task is to create comprehensive, well-structured summaries that capture all essential information while maintaining clarity and readability.
 
-Your core responsibilities:
-1. Extract and present ALL key information, main arguments, and important details
-2. Maintain logical flow and coherent structure
-3. Use clear, professional language
-4. Preserve critical data points, findings, and conclusions
-5. Ensure the summary stands alone and is fully understandable without the original document"""
+        INTELLIGENT CONTENT ANALYSIS FOR STRUCTURE:
+        Before writing, analyze the document to determine the best structural approach:
+
+        1. IDENTIFY CONTENT PATTERNS:
+           - Does the document discuss multiple distinct benefits, features, or advantages?
+           - Does it present multiple findings, results, or conclusions?
+           - Does it describe sequential steps, phases, or processes?
+           - Does it list multiple components, elements, or categories?
+           - Are there multiple challenges, issues, or problems discussed?
+
+        2. CHOOSE APPROPRIATE STRUCTURE:
+           - If the document naturally groups information into 3+ related items → Use list format for clarity
+           - If the document presents sequential information → Use numbered lists
+           - If the document is narrative or analytical without clear groupings → Use paragraph format
+           - If the document mixes both → Use lists for enumerated items, paragraphs for analysis
+
+        3. NATURAL LIST USAGE EXAMPLES:
+           Document type: "The system provides three main benefits: energy efficiency, cost savings, and user comfort"
+           → Summary: "The system offers key benefits:\n- Energy efficiency\n- Cost savings\n- User comfort"
+
+           Document type: "Research revealed increased retention rates and higher satisfaction scores"
+           → Summary: "Key findings include:\n- Increased retention rates\n- Higher satisfaction scores"
+
+           Document type: "The author argues that climate change requires immediate action through policy reform"
+           → Summary: "The author argues that climate change requires immediate action, emphasizing the critical role of policy reform in addressing environmental challenges."
+
+        4. STRUCTURE DECISION CRITERIA:
+           Use lists when: The source document enumerates, lists, or clearly groups 3+ items
+           Use paragraphs when: The source document provides narrative analysis, argumentation, or singular focus
+           Mix both when: The source document combines enumeration with analytical discussion
+
+        Core responsibilities:
+        1. Analyze the source document's natural structure and content patterns
+        2. Choose the most appropriate format (lists vs paragraphs) based on content
+        3. Extract and present ALL key information with proper formatting
+        4. Maintain logical flow and coherent structure
+        5. Use clear, professional language
+        6. Preserve critical data points, findings, and conclusions
+        7. Ensure the summary stands alone and is fully understandable"""
 
         if target_words:
             # STRICT word count enforcement
             word_guidance = f"""
-🎯 MANDATORY TARGET LENGTH: EXACTLY {target_words} words (±5% MAXIMUM)
+        🎯 MANDATORY TARGET LENGTH: EXACTLY {target_words} words (±5% MAXIMUM)
 
-⚠️ THIS IS A STRICT REQUIREMENT - NOT A SUGGESTION ⚠️
+        ⚠️ THIS IS A STRICT REQUIREMENT - NOT A SUGGESTION ⚠️
 
-ABSOLUTE REQUIREMENTS:
-1. Your summary MUST be approximately {target_words} words
-2. Acceptable range: {int(target_words * 0.95)} - {int(target_words * 1.05)} words
-3. DO NOT exceed this range under ANY circumstances
-4. Plan your content allocation BEFORE writing
-5. If you reach the word limit, STOP gracefully with a complete sentence
+        ABSOLUTE REQUIREMENTS:
+        1. Your summary MUST be approximately {target_words} words
+        2. Acceptable range: {int(target_words * 0.95)} - {int(target_words * 1.05)} words
+        3. DO NOT exceed this range under ANY circumstances
+        4. Plan your content allocation BEFORE writing
+        5. If you reach the word limit, STOP gracefully with a complete sentence
 
-MANDATORY WORD COUNT STRATEGY:
-Step 1: Calculate sections based on {target_words} words total
-Step 2: Allocate words per section proportionally
-Step 3: Write concisely to stay within allocation
-Step 4: Monitor your word count as you write
-Step 5: Complete your final sentence within the {int(target_words * 1.05)} word limit
+        MANDATORY WORD COUNT STRATEGY:
+        Step 1: Calculate sections based on {target_words} words total
+        Step 2: Allocate words per section proportionally
+        Step 3: Write concisely to stay within allocation
+        Step 4: Monitor your word count as you write
+        Step 5: Complete your final sentence within the {int(target_words * 1.05)} word limit
 
-CONTENT DENSITY GUIDELINES:
-- {target_words} ≤ 100 words: Only the absolute core message and conclusion
-- 100 < {target_words} ≤ 300 words: Core points + key supporting facts
-- 300 < {target_words} ≤ 500 words: Main points with essential details
-- 500 < {target_words} ≤ 1000 words: Comprehensive with examples
-- {target_words} > 1000 words: Detailed coverage with full context
+        CONTENT DENSITY GUIDELINES:
+        - {target_words} ≤ 100 words: Only the absolute core message and conclusion
+        - 100 < {target_words} ≤ 300 words: Core points + key supporting facts
+        - 300 < {target_words} ≤ 500 words: Main points with essential details
+        - 500 < {target_words} ≤ 1000 words: Comprehensive with examples
+        - {target_words} > 1000 words: Detailed coverage with full context
 
-CRITICAL ENFORCEMENT RULES:
-✓ MUST hit the target word count (±5% maximum)
-✓ NEVER exceed {int(target_words * 1.05)} words
-✓ NEVER truncate mid-sentence
-✓ Complete all thoughts properly
-✓ If approaching limit, conclude gracefully
-✓ Better to be slightly under than to truncate
+        CRITICAL ENFORCEMENT RULES:
+        ✓ MUST hit the target word count (±5% maximum)
+        ✓ NEVER exceed {int(target_words * 1.05)} words
+        ✓ NEVER truncate mid-sentence
+        ✓ Complete all thoughts properly
+        ✓ If approaching limit, conclude gracefully
+        ✓ Better to be slightly under than to truncate
 
-⚠️ FINAL WARNING: The {target_words} word target is MANDATORY, not optional. Respect it strictly."""
+        ⚠️ FINAL WARNING: The {target_words} word target is MANDATORY, not optional. Respect it strictly."""
         else:
             word_guidance = """
-SUMMARY LENGTH: Comprehensive (no specific word target)
+        SUMMARY LENGTH: Comprehensive (no specific word target)
 
-STRATEGY:
-- Cover all significant information from the document
-- Use as many words as needed to capture the essence completely
-- Maintain high information density
-- Ensure logical flow and complete thoughts
-- End with a proper conclusion"""
+        STRATEGY:
+        - Cover all significant information from the document
+        - Use as many words as needed to capture the essence completely
+        - Maintain high information density
+        - Ensure logical flow and complete thoughts
+        - End with a proper conclusion"""
 
-        format_instruction = f"""
-OUTPUT FORMAT: {output_format}
+        if output_format == "html":
+            format_instruction = """
+        OUTPUT FORMAT: HTML
 
-FORMATTING GUIDELINES:
-- Use clear paragraph breaks for readability
-- Use bullet points or numbered lists for enumerations
-- Use **bold** for key terms or critical points
-- Use proper headings if the summary is long (## for main sections)
-- Maintain professional tone throughout
-- End with a complete, conclusive statement
+        HTML FORMATTING GUIDELINES:
+        - Use semantic HTML tags: <p> for paragraphs, <ul><li> for bullet lists, <ol><li> for numbered lists
+        - Use <strong> for emphasis on key terms within content
+        - Apply list formatting when source content enumerates multiple items
+        - Keep HTML clean and compact - NO wrapper tags like <html>, <body>, <head>
+        - NO excessive whitespace or line breaks between elements
 
-STRUCTURE:
-1. Brief opening that captures the document's main purpose
-2. Body covering key points in logical order
-3. Strong closing that ties everything together"""
+        WHEN TO USE HTML LISTS:
+        Based on your content analysis, if the source document enumerates multiple items:
+        - Multiple related benefits/features → <ul><li>Item 1</li><li>Item 2</li></ul>
+        - Sequential steps/processes → <ol><li>Step 1</li><li>Step 2</li></ol>
+        - Narrative or analytical content → <p>Regular paragraph text</p>
+
+        HTML STRUCTURE EXAMPLES:
+        For content with enumerated items:
+        <p>The system provides key benefits:</p>
+        <ul>
+        <li><strong>Energy Efficiency:</strong> Reduces power consumption</li>
+        <li><strong>Cost Savings:</strong> Lowers operational expenses</li>
+        <li><strong>User Comfort:</strong> Maintains optimal climate</li>
+        </ul>
+        <p>These advantages make it ideal for commercial applications.</p>
+
+        For narrative content:
+        <p>The author examines the impact of climate policy on economic growth, arguing that sustainable practices can drive innovation while reducing environmental harm. The analysis demonstrates how integrated approaches benefit both economy and environment.</p>
+
+        CRITICAL: Match your structure choice to the content analysis - use lists only when the source naturally groups or enumerates information."""
+        elif output_format == "plain":
+            format_instruction = """
+        OUTPUT FORMAT: Plain Text
+
+        PLAIN TEXT FORMATTING GUIDELINES:
+        - Use "- " (dash + space) for bullet lists
+        - Use "1. 2. 3." for numbered/sequential lists
+        - Use "***Term***" for emphasis on key terms
+        - Keep consistent formatting throughout
+
+        WHEN TO USE PLAIN TEXT LISTS:
+        Based on your content analysis, if the source document enumerates multiple items:
+        - Multiple related items → "Key benefits:\n- Item 1\n- Item 2"
+        - Sequential steps → "Process:\n1. Step 1\n2. Step 2"
+        - Narrative content → Regular paragraph format
+
+        PLAIN TEXT EXAMPLES:
+        For content with enumerated items:
+        The system provides key benefits:
+        - ***Energy Efficiency***: Reduces power consumption
+        - ***Cost Savings***: Lowers operational expenses
+        - ***User Comfort***: Maintains optimal climate
+
+        These advantages make it ideal for commercial applications.
+
+        For narrative content:
+        The author examines the impact of climate policy on economic growth, arguing that sustainable practices can drive innovation while reducing environmental harm. The analysis demonstrates how integrated approaches benefit both economy and environment.
+
+        STRUCTURE:
+        1. Brief opening paragraph
+        2. Use lists when source content enumerates items
+        3. Use paragraphs when source content is narrative
+        4. Strong closing paragraph"""
+        else:  # markdown (default)
+            format_instruction = f"""
+        OUTPUT FORMAT: {output_format}
+
+        MARKDOWN FORMATTING GUIDELINES:
+        - Use "- " for bullet lists with **bold** key terms
+        - Use "1. 2. 3." for numbered/sequential lists
+        - Use "**text**" for bold emphasis on important terms
+        - Use "`technical term`" for code/technical references
+        - Use "## Heading" only if document has clear sections
+
+        WHEN TO USE MARKDOWN LISTS:
+        Based on your content analysis, if the source document enumerates multiple items:
+        - Multiple related items → "**Key Benefits:**\n- **Item 1**: Description\n- **Item 2**: Description"
+        - Sequential steps → "**Process:**\n1. **Step 1**: Action\n2. **Step 2**: Action"
+        - Narrative content → Regular paragraph format with **bold** for emphasis
+
+        MARKDOWN EXAMPLES:
+        For content with enumerated items:
+        The system provides **key benefits**:
+        - **Energy Efficiency**: Reduces power consumption by 30%
+        - **Cost Savings**: Lowers operational expenses significantly
+        - **User Comfort**: Maintains optimal indoor climate
+
+        These advantages make it ideal for commercial applications.
+
+        For narrative content:
+        The author examines the impact of **climate policy** on economic growth, arguing that sustainable practices can drive innovation while reducing environmental harm. The analysis demonstrates how integrated approaches benefit both economy and environment.
+
+        STRUCTURE:
+        1. Brief opening paragraph
+        2. Use lists when source content enumerates items
+        3. Use paragraphs when source content is narrative
+        4. Strong closing paragraph"""
 
         return f"{base_instruction}\n\n{word_guidance}\n\n{format_instruction}"
 
@@ -130,11 +246,11 @@ STRUCTURE:
         
         base_message = f"""Please analyze and summarize the following document according to the instructions provided.
 
-DOCUMENT TEXT:
-{text}
+        DOCUMENT TEXT:
+        {text}
 
----
-"""
+        ---
+        """
 
         # Check if user_prompt has a word count instruction
         has_user_word_count = False
@@ -149,56 +265,56 @@ DOCUMENT TEXT:
         if user_prompt and has_user_word_count:
             # User prompt has word count - let it take precedence
             base_message += f"""📋 USER INSTRUCTIONS:
-{user_prompt}
+        {user_prompt}
 
-⚠️ CRITICAL: Your custom instruction above contains a word count requirement. That word count is MANDATORY and MUST be followed exactly.
+        ⚠️ CRITICAL: Your custom instruction above contains a word count requirement. That word count is MANDATORY and MUST be followed exactly.
 
-"""
+        """
         elif target_words:
             # No user word count, use target_words parameter - MAKE IT EXPLICIT
             min_acceptable = int(target_words * 0.95)
             max_acceptable = int(target_words * 1.05)
             base_message += f"""🎯 MANDATORY WORD COUNT REQUIREMENT:
 
-YOUR SUMMARY MUST BE EXACTLY {target_words} WORDS (±5% maximum)
+        YOUR SUMMARY MUST BE EXACTLY {target_words} WORDS (±5% maximum)
 
-Acceptable range: {min_acceptable} to {max_acceptable} words
-THIS IS NOT A SUGGESTION - IT IS A STRICT REQUIREMENT
+        Acceptable range: {min_acceptable} to {max_acceptable} words
+        THIS IS NOT A SUGGESTION - IT IS A STRICT REQUIREMENT
 
-"""
+        """
             # Add user prompt if present (without word count)
             if user_prompt:
                 base_message += f"""📋 ADDITIONAL USER INSTRUCTIONS:
-{user_prompt}
+        {user_prompt}
 
-"""
+        """
         else:
             # No word count specified anywhere - comprehensive summary
             base_message += """📋 SUMMARY REQUIREMENTS:
-Create a comprehensive summary that captures all essential information.
-No specific word count target - focus on completeness and clarity.
+        Create a comprehensive summary that captures all essential information.
+        No specific word count target - focus on completeness and clarity.
 
-"""
+        """
             if user_prompt:
                 base_message += f"""ADDITIONAL USER INSTRUCTIONS:
-{user_prompt}
+        {user_prompt}
 
-"""
+        """
 
         # Common requirements for all scenarios
         base_message += """🎯 MANDATORY REQUIREMENTS FOR YOUR SUMMARY:
-1. Capture all essential information with maximum information density
-2. Maintain well-structured, logical flow
-3. Complete all sentences properly - NO mid-sentence truncation
-4. End gracefully when approaching any word limit
-5. Use clear, professional language
-"""
+        1. Capture all essential information with maximum information density
+        2. Maintain well-structured, logical flow
+        3. Complete all sentences properly - NO mid-sentence truncation
+        4. End gracefully when approaching any word limit
+        5. Use clear, professional language
+        """
 
         if target_words or (user_prompt and has_user_word_count):
             base_message += f"""
-⚠️ FINAL REMINDER: The word count target is MANDATORY and MUST be respected strictly.
-Plan your content allocation BEFORE writing to ensure you hit the target.
-"""
+        ⚠️ FINAL REMINDER: The word count target is MANDATORY and MUST be respected strictly.
+        Plan your content allocation BEFORE writing to ensure you hit the target.
+        """
 
         base_message += "\n✍️ Begin your summary now:"
         
@@ -209,57 +325,57 @@ Plan your content allocation BEFORE writing to ensure you hit the target.
         
         base_instruction = """You are an expert document analyst with EXCEPTIONAL CONSISTENCY in following word count targets.
 
-Your core responsibilities:
-1. Extract and present ALL key information with perfect word count control
-2. NEVER exceed the specified word range under any circumstances
-3. Complete all sentences properly without truncation
-4. Maintain logical flow and coherent structure
-5. Use clear, professional language optimized for the target length"""
+        Your core responsibilities:
+        1. Extract and present ALL key information with perfect word count control
+        2. NEVER exceed the specified word range under any circumstances
+        3. Complete all sentences properly without truncation
+        4. Maintain logical flow and coherent structure
+        5. Use clear, professional language optimized for the target length"""
 
         # Attempt-specific instructions for consistency
         if attempt == 1:
             consistency_note = f"""
-🎯 FIRST ATTEMPT - PRECISION TARGET: {target_words} words (acceptable: {min_acceptable}-{max_acceptable})
+        🎯 FIRST ATTEMPT - PRECISION TARGET: {target_words} words (acceptable: {min_acceptable}-{max_acceptable})
 
-CONSISTENCY RULES:
-✓ AIM for exactly {target_words} words
-✓ Acceptable range: {min_acceptable} to {max_acceptable} words
-✓ Plan your content structure BEFORE writing
-✓ Monitor word count as you write each section
-✓ STOP when you reach {max_acceptable} words maximum
-✓ Better to be slightly under than to exceed the limit"""
+        CONSISTENCY RULES:
+        ✓ AIM for exactly {target_words} words
+        ✓ Acceptable range: {min_acceptable} to {max_acceptable} words
+        ✓ Plan your content structure BEFORE writing
+        ✓ Monitor word count as you write each section
+        ✓ STOP when you reach {max_acceptable} words maximum
+        ✓ Better to be slightly under than to exceed the limit"""
 
         elif attempt == 2:
             consistency_note = f"""
-🔄 RETRY ATTEMPT - STRICT ENFORCEMENT: {target_words} words (range: {min_acceptable}-{max_acceptable})
+        🔄 RETRY ATTEMPT - STRICT ENFORCEMENT: {target_words} words (range: {min_acceptable}-{max_acceptable})
 
-PREVIOUS ATTEMPT WAS OUT OF RANGE - ADJUST YOUR APPROACH:
-✓ Be MORE PRECISE with word allocation per section
-✓ Use SHORTER sentences if previous attempt was too long
-✓ Add MORE detail if previous attempt was too short
-✓ CRITICAL: Stay within {min_acceptable}-{max_acceptable} words
-✓ End IMMEDIATELY when approaching {max_acceptable} words
-✓ This is your second chance - be more accurate"""
+        PREVIOUS ATTEMPT WAS OUT OF RANGE - ADJUST YOUR APPROACH:
+        ✓ Be MORE PRECISE with word allocation per section
+        ✓ Use SHORTER sentences if previous attempt was too long
+        ✓ Add MORE detail if previous attempt was too short
+        ✓ CRITICAL: Stay within {min_acceptable}-{max_acceptable} words
+        ✓ End IMMEDIATELY when approaching {max_acceptable} words
+        ✓ This is your second chance - be more accurate"""
 
         else:
             consistency_note = f"""
-⚠️ FINAL ATTEMPT - EMERGENCY PRECISION: {target_words} words (STRICT: {min_acceptable}-{max_acceptable})
+        ⚠️ FINAL ATTEMPT - EMERGENCY PRECISION: {target_words} words (STRICT: {min_acceptable}-{max_acceptable})
 
-PREVIOUS ATTEMPTS FAILED - MAXIMUM PRECISION REQUIRED:
-✓ CRITICAL: This is the last attempt for accurate word count
-✓ PLAN every word carefully to hit {target_words} target
-✓ Use EXACT word allocation strategy
-✓ COUNT words as you write each sentence
-✓ MANDATORY: Stop at {max_acceptable} words maximum
-✓ SUCCESS depends on staying within {min_acceptable}-{max_acceptable} range
-✓ NO excuses - hit the target precisely"""
+        PREVIOUS ATTEMPTS FAILED - MAXIMUM PRECISION REQUIRED:
+        ✓ CRITICAL: This is the last attempt for accurate word count
+        ✓ PLAN every word carefully to hit {target_words} target
+        ✓ Use EXACT word allocation strategy
+        ✓ COUNT words as you write each sentence
+        ✓ MANDATORY: Stop at {max_acceptable} words maximum
+        ✓ SUCCESS depends on staying within {min_acceptable}-{max_acceptable} range
+        ✓ NO excuses - hit the target precisely"""
 
         format_instruction = f"""
-OUTPUT FORMAT: {output_format}
-- Use clear paragraph breaks and proper formatting
-- End with complete, conclusive statements
-- No mid-sentence truncation allowed
-- Professional tone throughout"""
+        OUTPUT FORMAT: {output_format}
+        - Use clear paragraph breaks and proper formatting
+        - End with complete, conclusive statements
+        - No mid-sentence truncation allowed
+        - Professional tone throughout"""
 
         return f"{base_instruction}\n\n{consistency_note}\n\n{format_instruction}"
 
@@ -550,19 +666,19 @@ OUTPUT FORMAT: {output_format}
             
             refinement_prompt = f"""The following are summaries of different sections from a single document.
 
-MANDATORY TASK: Create a unified summary with EXACTLY {target_words} words (acceptable: {min_acceptable}-{max_acceptable})
+            MANDATORY TASK: Create a unified summary with EXACTLY {target_words} words (acceptable: {min_acceptable}-{max_acceptable})
 
-INTEGRATION REQUIREMENTS:
-- Combine all key points from sections below
-- Remove redundancy between sections
-- Maintain logical flow and coherence
-- CRITICAL: Stay within {min_acceptable}-{max_acceptable} words
-- End with complete conclusion (no truncation)
+            INTEGRATION REQUIREMENTS:
+            - Combine all key points from sections below
+            - Remove redundancy between sections
+            - Maintain logical flow and coherence
+            - CRITICAL: Stay within {min_acceptable}-{max_acceptable} words
+            - End with complete conclusion (no truncation)
 
-SECTION SUMMARIES TO INTEGRATE:
-{merged.markdown}
+            SECTION SUMMARIES TO INTEGRATE:
+            {merged.markdown}
 
-Create the final integrated summary now (target: {target_words} words):"""
+            Create the final integrated summary now (target: {target_words} words):"""
             
             # Conservative token budget for final synthesis
             token_budget = self._calculate_consistent_token_budget(target_words)

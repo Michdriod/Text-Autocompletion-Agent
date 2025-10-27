@@ -71,6 +71,14 @@ async def summarize_document(
             detail="Provide only ONE input source (file, document URL, or raw text)."
         )
     
+    # Validate output format
+    valid_formats = ["markdown", "plain", "html", "both", "all"]
+    if output_format not in valid_formats:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid output_format. Must be one of: {valid_formats}"
+        )
+    
     # if file is None and (raw_text is None or not raw_text.strip()):
     #     raise HTTPException(status_code=400, detail="Provide either a file or non-empty raw_text.")
 

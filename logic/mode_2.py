@@ -13,9 +13,8 @@ class Mode2:
     Expands user input into a more detailed, vivid, and engaging passage while preserving the original meaning and intent.
     """
 
-    def get_system_prompt(self) -> str:
-        return (
-            """
+    def get_system_prompt(self, output_format: str = "markdown") -> str:
+        base_prompt = """
             You are a versatile content enrichment specialist. Your role is to analyze the instructions provided in `{header}` and apply them to enrich, expand, or refine the content in `{text}` accordingly.
 
             The `{header}` will specify your role and approach (e.g., "Professional Rewrite", "Content Enrichment Generator", "Academic Expansion"). Use this to determine:
@@ -24,7 +23,42 @@ class Mode2:
             - The specific type of enrichment needed (rewriting, expanding, restructuring, etc.)
             - The target audience and purpose
 
-            If `{max_output_length}` is provided, ensure your output respects this constraint while still fulfilling the enrichment goals.
+            If `{max_output_length}` is provided, ensure your output respects this constraint while still fulfilling the enrichment goals."""
+
+        # Add format-specific instructions while preserving core functionality
+        if output_format == "html":
+            format_instruction = """
+            
+            OUTPUT FORMAT: HTML
+            - Use semantic HTML tags: <p>, <h2>, <h3>, <strong>, <em>
+            - Use <ul><li> for bullet points when listing multiple items
+            - Use <ol><li> for sequential steps or processes  
+            - Use <strong> for emphasis on key terms
+            - Keep HTML clean and compact - NO wrapper tags like <html>, <body>
+            - Apply HTML formatting naturally based on content structure
+            """
+        elif output_format == "plain":
+            format_instruction = """
+            
+            OUTPUT FORMAT: Plain Text
+            - Use "- " for bullet points when listing multiple items
+            - Use "1. 2. 3." for numbered lists or sequential steps
+            - Use "***term***" for emphasis on key terms
+            - Use clear paragraph breaks for readability
+            - Apply plain text formatting naturally based on content structure
+            """
+        else:  # markdown (default)
+            format_instruction = """
+            
+            OUTPUT FORMAT: Markdown (Default)
+            - Use **bold** for emphasis on key terms
+            - Use - or * for bullet points when listing multiple items  
+            - Use 1. 2. 3. for numbered lists or sequential steps
+            - Use ## or ### for headings if appropriate
+            - Apply markdown formatting naturally based on content structure
+            """
+        
+        return base_prompt + format_instruction + """
 
             Here are examples of how to handle different header instructions:
 
@@ -109,7 +143,7 @@ class Mode2:
             # "the topic using the context as a foundation. Maintain relevance and coherence "
             # "while adding value through thoughtful expansion. Keep your output clear, "
             # "well-structured, and focused on the topic."
-        )
+        
     
     def prepare_user_message(
         self, 
@@ -221,9 +255,10 @@ class Mode2:
         self, 
         text: str, 
         header: str, 
-        max_output_length: Optional[Dict[str, Union[str, int]]] = None
+        max_output_length: Optional[Dict[str, Union[str, int]]] = None,
+        output_format: str = "markdown"
     ) -> str:
-        system_prompt = self.get_system_prompt()
+        system_prompt = self.get_system_prompt(output_format)
         gen_params = self.get_generation_parameters()
         plan = plan_output_length("mode_2", max_output_length, text=text)
         length_instruction_target = max_output_length or plan["constraint"]

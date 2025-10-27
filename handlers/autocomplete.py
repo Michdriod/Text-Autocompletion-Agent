@@ -40,12 +40,18 @@ class AutocompleteRequest(BaseModel):
     # body: Optional[Dict[str, Any]] = None  # For mode_4
     min_input_words: Optional[int] = None
     max_output_length: Optional[Dict[str, Union[str, int]]] = None
+    output_format: Optional[str] = "markdown"  # New field for output format
 
 
 # Response model for text enrichment
 class AutocompleteResponse(BaseModel):
-    completion: str  # Generated text completion
+    completion: str  # Generated text completion (for backward compatibility)
     mode: str  # Mode used for generation
+    # New fields for multi-format support
+    markdown_summary: Optional[str] = None
+    plain_summary: Optional[str] = None  
+    html_summary: Optional[str] = None
+    output_format: Optional[str] = None
 
 @router.post("/autocomplete", response_model=AutocompleteResponse)
 async def autocomplete(request: AutocompleteRequest):
@@ -127,8 +133,49 @@ async def autocomplete(request: AutocompleteRequest):
             completion = await mode_logic.process(
                 text=request.text,
                 header=request.header,
-                max_output_length=request.max_output_length
+                max_output_length=request.max_output_length,
+                output_format=request.output_format or "markdown"
             )
+            
+            # Handle output formatting for Mode 2 if requested format is not default
+            if request.output_format and request.output_format != "markdown":
+                from services.formatter import format_output
+                from services.finalize import FinalizedSummary
+                
+                # Create a FinalizedSummary-like object for the formatter
+                finalized = FinalizedSummary(
+                    text=completion,
+                    summary_words=len(completion.split()),
+                    target_words=request.max_output_length.get("value", len(completion.split())) if request.max_output_length else len(completion.split()),
+                    achieved_ratio=1.0
+                )
+                
+                # Format the output
+                formatted_result = format_output(finalized, None, request.output_format)
+                
+                # Return formatted response
+                response_data = {
+                    "completion": completion,  # Keep original for backward compatibility
+                    "mode": request.mode,
+                    "output_format": request.output_format
+                }
+                
+                # Add format-specific fields
+                if request.output_format == "html":
+                    response_data["html_summary"] = formatted_result.get("html_summary", completion)
+                    response_data["completion"] = formatted_result.get("html_summary", completion)
+                elif request.output_format == "plain":
+                    response_data["plain_summary"] = formatted_result.get("plain_summary", completion)
+                    response_data["completion"] = formatted_result.get("plain_summary", completion)
+                elif request.output_format == "both":
+                    response_data["markdown_summary"] = formatted_result.get("markdown_summary", completion)
+                    response_data["plain_summary"] = formatted_result.get("plain_summary", completion)
+                elif request.output_format == "all":
+                    response_data["markdown_summary"] = formatted_result.get("markdown_summary", completion)
+                    response_data["plain_summary"] = formatted_result.get("plain_summary", completion)
+                    response_data["html_summary"] = formatted_result.get("html_summary", completion)
+                
+                return AutocompleteResponse(**response_data)
         elif request.mode == ModeType.mode_3:
             mode_logic = Mode3()
             completion = await mode_logic.process(
@@ -154,9 +201,11 @@ async def autocomplete(request: AutocompleteRequest):
         # if request.max_output_length and not validate_output_length(completion, request.max_output_length):
         #     completion = trim_output(completion, request.max_output_length)
 
+        # Return standard response (Mode 2 with formatting handled above)
         return AutocompleteResponse(
             completion=completion,
-            mode=request.mode
+            mode=request.mode,
+            output_format=request.output_format if request.output_format != "markdown" else None
         )
     except httpx.RequestError as e:
         raise HTTPException(
