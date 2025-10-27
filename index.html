@@ -1931,6 +1931,12 @@
                 hasMetadata = true;
             }
             
+            // Add min words used metadata for Mode 1
+            if (data.min_words_used !== undefined && data.mode === 'mode_1') {
+                addMetadata('Min Words Required', data.min_words_used);
+                hasMetadata = true;
+            }
+            
             // Calculate word/character count from output (now in collapsible section)
             let outputText = data.completion || data.markdown_summary || data.plain_summary || data.html_summary || data.document || '';
             if (outputText) {

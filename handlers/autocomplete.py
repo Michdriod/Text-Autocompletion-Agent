@@ -22,6 +22,27 @@ from logic.mode_6 import Mode6
 from utils.validator import get_default_min_words, validate_minimum_word_count, validate_combined_word_count
 router = APIRouter()
 
+
+def validate_min_words_mode1(text: str, min_words: int) -> None:
+    """Validate that text meets minimum word requirement for Mode 1."""
+    if not text or not text.strip():
+        return  # Empty text is handled elsewhere
+    
+    word_count = len(text.strip().split())
+    if word_count < min_words:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Input text must have at least {min_words} words. Current: {word_count} words."
+        )
+
+
+def get_effective_min_words_mode1(request_min_words: Optional[int]) -> int:
+    """Get the effective minimum words for Mode 1 - use request value or default to 2."""
+    if request_min_words is not None and request_min_words >= 0:
+        return request_min_words
+    return 2  # Default minimum for Mode 1
+
+
 # Define available enrichment modes
 class ModeType(str, Enum):
     mode_1 = "mode_1"  # Intelligent Text Autocomplete
@@ -45,13 +66,14 @@ class AutocompleteRequest(BaseModel):
 
 # Response model for text enrichment
 class AutocompleteResponse(BaseModel):
-    completion: str  # Generated text completion (for backward compatibility)
+    completion: str  # Generated text completion
     mode: str  # Mode used for generation
     # New fields for multi-format support
     markdown_summary: Optional[str] = None
     plain_summary: Optional[str] = None  
     html_summary: Optional[str] = None
     output_format: Optional[str] = None
+    min_words_used: Optional[int] = None  # For Mode 1 feedback
 
 @router.post("/autocomplete", response_model=AutocompleteResponse)
 async def autocomplete(request: AutocompleteRequest):
@@ -122,7 +144,15 @@ async def autocomplete(request: AutocompleteRequest):
 
         # Process the request based on the mode
         completion = None
+        effective_min_words_mode1 = None
+        
         if request.mode == ModeType.mode_1:
+            # Get effective minimum words (frontend value or default of 2)
+            effective_min_words_mode1 = get_effective_min_words_mode1(request.min_input_words)
+            
+            # Validate minimum words for Mode 1
+            validate_min_words_mode1(request.text, effective_min_words_mode1)
+            
             mode_logic = Mode1()
             completion = await mode_logic.process(
                 text=request.text,
@@ -205,7 +235,8 @@ async def autocomplete(request: AutocompleteRequest):
         return AutocompleteResponse(
             completion=completion,
             mode=request.mode,
-            output_format=request.output_format if request.output_format != "markdown" else None
+            output_format=request.output_format if request.output_format != "markdown" else None,
+            min_words_used=effective_min_words_mode1 if request.mode == ModeType.mode_1 else None
         )
     except httpx.RequestError as e:
         raise HTTPException(
