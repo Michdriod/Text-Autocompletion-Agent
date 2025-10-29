@@ -1,90 +1,130 @@
 #!/usr/bin/env python3
-"""Debug script to test per_row mode and see actual response structure."""
+"""
+Test the specific scenario from the user's payload.
+"""
 
 import asyncio
 import sys
-import json
-from handlers.summarize_document import summarize_document_handler
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-async def test_per_row():
-    """Test per_row mode with debug output."""
+from logic.mode_2 import Mode2
+
+async def test_name_scenario():
+    """Test the name scenario."""
+    print("=== Testing Name Scenario (Should Reject) ===")
     
-    print("=" * 80)
-    print("Testing PostgreSQL per_row mode")
-    print("=" * 80)
+    mode2 = Mode2()
     
-    # Mock request object
-    class MockRequest:
-        pass
-    
-    # Test parameters - ADJUST THESE TO YOUR ACTUAL DATABASE
-    test_params = {
-        'pg_db': 'your_database_name',  # ← CHANGE THIS
-        'pg_table': 'incidents',
-        'pg_id_column': 'incident_id',
-        'pg_text_column': 'description',
-        'pg_context_column': 'title',  # optional
-        'pg_id_start': 'INC_05',
-        'pg_id_end': 'INC_07',
-        'pg_mode': 'per_row',
-        'output_format': 'markdown',
-        'target_words': 50,  # optional
-    }
-    
-    print("\nTest Parameters:")
-    print(json.dumps(test_params, indent=2))
-    print("\n" + "=" * 80)
+    # Name scenario
+    header = "Enhance the given asset description for IT infrastructure management. Make it more descriptive, correct grammatical errors, and improve technical specifications, condition reporting, and asset documentation details."
+    text = "Micheal Alejo"
     
     try:
-        # Call the handler
-        result = await summarize_document_handler(
-            request=MockRequest(),
-            pg_db=test_params.get('pg_db'),
-            pg_table=test_params.get('pg_table'),
-            pg_id_column=test_params.get('pg_id_column'),
-            pg_text_column=test_params.get('pg_text_column'),
-            pg_context_column=test_params.get('pg_context_column'),
-            pg_id_start=test_params.get('pg_id_start'),
-            pg_id_end=test_params.get('pg_id_end'),
-            pg_mode=test_params.get('pg_mode'),
-            output_format=test_params.get('output_format'),
-            target_words=test_params.get('target_words'),
+        result = await mode2.process(
+            text=text,
+            header=header,
+            max_output_length={"type": "words", "value": 100},
+            output_format="markdown"
         )
-        
-        print("\n✅ SUCCESS! Response structure:")
-        print("=" * 80)
-        print(json.dumps(result, indent=2, default=str))
-        print("=" * 80)
-        
-        # Detailed analysis
-        if 'summaries' in result:
-            print(f"\n📊 Found {len(result['summaries'])} summaries")
-            for i, item in enumerate(result['summaries']):
-                print(f"\n--- Summary {i+1} ---")
-                print(f"ID: {item.get('id')}")
-                print(f"Has 'result' key: {('result' in item)}")
-                if 'result' in item:
-                    print(f"Result keys: {list(item['result'].keys())}")
-                    if 'markdown_summary' in item['result']:
-                        summary = item['result']['markdown_summary']
-                        print(f"Summary length: {len(summary)} chars")
-                        print(f"Summary preview: {summary[:100]}...")
-                    else:
-                        print("⚠️ No 'markdown_summary' key in result!")
-                        print(f"Available keys: {list(item['result'].keys())}")
-                if 'error' in item:
-                    print(f"❌ Error: {item['error']}")
-        
+        print(f"❌ FAILED - Should have been rejected but got:")
+        print(f"Header: {header}")
+        print(f"Input: {text}")
+        print(f"Output: {result}")
+        return False
+    except ValueError as e:
+        print(f"✅ SUCCESS - Properly rejected the mismatched content")
+        print(f"Header: {header}")
+        print(f"Input: {text}")
+        print(f"Error: {e}")
+        return True
     except Exception as e:
-        print(f"\n❌ ERROR: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"❌ FAILED - Unexpected error: {e}")
+        return False
 
-if __name__ == '__main__':
-    print("\n⚠️  IMPORTANT: Edit this file and change 'your_database_name' to your actual database name!")
-    print("Press Ctrl+C to cancel, or wait 3 seconds to continue...\n")
+async def test_casual_content_scenario():
+    """Test casual content that doesn't match technical context."""
+    print("\n=== Testing Casual Content Scenario (Should Reject) ===")
     
-    import time
-    time.sleep(3)
+    mode2 = Mode2()
     
-    asyncio.run(test_per_row())
+    # Casual content scenario
+    header = "Enhance the given asset description for IT infrastructure management. Make it more descriptive, correct grammatical errors, and improve technical specifications, condition reporting, and asset documentation details."
+    text = "cat goes to school"
+    
+    try:
+        result = await mode2.process(
+            text=text,
+            header=header,
+            max_output_length={"type": "words", "value": 100},
+            output_format="markdown"
+        )
+        print(f"❌ FAILED - Should have been rejected but got:")
+        print(f"Header: {header}")
+        print(f"Input: {text}")
+        print(f"Output: {result}")
+        return False
+    except ValueError as e:
+        print(f"✅ SUCCESS - Properly rejected the mismatched content")
+        print(f"Header: {header}")
+        print(f"Input: {text}")
+        print(f"Error: {e}")
+        return True
+    except Exception as e:
+        print(f"❌ FAILED - Unexpected error: {e}")
+        return False
+
+async def test_similar_valid_content():
+    """Test with content that should be accepted."""
+    print("\n=== Testing Valid IT Asset Content ===")
+    
+    mode2 = Mode2()
+    
+    # Valid content for the same header
+    header = "Enhance the given asset description for IT infrastructure management. Make it more descriptive, correct grammatical errors, and improve technical specifications, condition reporting, and asset documentation details."
+    text = "Dell server rack unit"
+    
+    try:
+        result = await mode2.process(
+            text=text,
+            header=header,
+            max_output_length={"type": "words", "value": 100},
+            output_format="markdown"
+        )
+        print(f"✅ SUCCESS - Valid content processed")
+        print(f"Header: {header}")
+        print(f"Input: {text}")
+        print(f"Output: {result[:200]}{'...' if len(result) > 200 else ''}")
+        return True
+    except Exception as e:
+        print(f"❌ FAILED - Valid content should have worked: {e}")
+        return False
+
+async def main():
+    """Run the specific test scenarios."""
+    print("Testing Mode2 Context Validation - Multiple Scenarios\n")
+    
+    tests = [
+        test_name_scenario,
+        test_casual_content_scenario,
+        test_similar_valid_content
+    ]
+    
+    results = []
+    for test in tests:
+        result = await test()
+        results.append(result)
+    
+    print(f"\n=== Test Results ===")
+    print(f"Tests passed: {sum(results)}/{len(results)}")
+    
+    if all(results):
+        print("🎉 All tests passed! The validation now properly handles name vs. technical content.")
+        return True
+    else:
+        print("⚠️ Some tests failed.")
+        return False
+
+if __name__ == "__main__":
+    success = asyncio.run(main())
+    sys.exit(0 if success else 1)

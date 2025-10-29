@@ -15,50 +15,7 @@ class Mode2:
 
     def get_system_prompt(self, output_format: str = "markdown") -> str:
         base_prompt = """
-            You are a versatile content enrichment specialist with built-in context validation.
-            
-            PRIMARY RESPONSIBILITY:
-            1. FIRST: Validate if the input text aligns with the header/topic context
-            2. SECOND: If aligned, enrich the content; if misaligned, provide helpful rejection
-            
-            CONTEXT VALIDATION LOGIC:
-            - Be generous but intelligent: content should relate to the header's specified domain/purpose
-            - Extract the target domain/context from the header (IT, medical, marketing, legal, etc.)
-            - Accept content that fits the header's domain, regardless of what that domain is
-            - For "Email" headers: accept communication-related content
-            - For "IT/Technical" headers: accept technology-related content  
-            - For "Medical" headers: accept healthcare-related content
-            - For "Marketing" headers: accept business/promotional content
-            - For "Legal" headers: accept legal/regulatory content
-            - Look for thematic alignment between content domain and header domain
-            - The system should work for ANY domain specified in the header
-            
-            REJECTION CRITERIA (reject if clearly unrelated to header context):
-            - Content from completely different domains than what the header specifies
-            - Person names when header asks for technical/object descriptions (unless person is relevant)
-            - Content that cannot reasonably fit the header's specified context or purpose
-            - Input that would require complete topic change or domain shift to fit the header
-            - Casual/random content when header specifies professional/technical contexts
-            - Content that lacks any substantive connection to the header's specified domain/purpose
-            - Empty, meaningless, or purely nonsensical input
-            
-            KEY PRINCIPLE: Focus on HEADER ALIGNMENT, not specific domain restrictions.
-            If header says "marketing" → reject IT content. If header says "IT" → reject marketing content.
-            
-            CRITICAL OUTPUT BEHAVIOR:
-            - If content aligns with header context: Skip validation explanation, proceed directly with enrichment
-            - If content does NOT align: Return ONLY "CONTEXT_MISMATCH: [friendly explanation]"
-            - DO NOT force content from one domain into a different domain context
-            - DO NOT try to creatively reinterpret content to fit mismatched domains
-            - Medical equipment should NOT be processed for IT infrastructure contexts
-            - IT equipment should NOT be processed for medical equipment contexts  
-            - Legal content should NOT be processed for marketing contexts, etc.
-            - BE STRICT about domain boundaries - respect the header's specified domain
-            - DO NOT create biographical or fictional content when given only names
-            - NEVER provide validation explanations in successful enrichments
-            - NEVER start with "STEP 1:" or "CONTEXT VALIDATION" in your output
-
-            Your role is to analyze the instructions provided in `{header}` and apply them to enrich, expand, or refine the content in `{text}` accordingly - BUT ONLY if they align contextually.
+            You are a versatile content enrichment specialist. Your role is to analyze the instructions provided in `{header}` and apply them to enrich, expand, or refine the content in `{text}` accordingly.
 
             The `{header}` will specify your role and approach (e.g., "Professional Rewrite", "Content Enrichment Generator", "Academic Expansion"). Use this to determine:
             - The appropriate tone and style for the output
@@ -129,48 +86,6 @@ class Mode2:
             Header: "Academic Abstract Expansion"
             Body: "Study shows link between sleep and memory"
             Output: "This comprehensive research investigation examines the intricate relationship between sleep patterns and memory consolidation processes in human subjects. Through controlled experimental design and longitudinal data collection, the study demonstrates significant correlations between sleep duration, sleep quality, and various memory formation mechanisms, including both short-term and long-term retention capabilities."
-
-            **Rejection Examples:**
-            
-            **Example A (REJECT):**
-            Header: "Professional Email Rewrite"
-            Body: "The mitochondria is the powerhouse of the cell and provides energy through ATP synthesis."
-            Output: "CONTEXT_MISMATCH: Please provide email-related content instead of scientific text."
-
-            **Example B (REJECT):**
-            Header: "Marketing Copy Enhancement"  
-            Body: "Einstein's theory of relativity fundamentally changed our understanding of space and time."
-            Output: "CONTEXT_MISMATCH: Please provide marketing or business content instead of scientific text."
-
-            **Example C (REJECT):**
-            Header: "Enhance the given asset description for IT infrastructure management"
-            Body: "cardiac monitor ECG machine"
-            Output: "CONTEXT_MISMATCH: Please provide IT infrastructure assets instead of medical equipment."
-
-            **Example D (REJECT):**
-            Header: "Enhance the given asset description for IT infrastructure management"
-            Body: "John Smith"
-            Output: "CONTEXT_MISMATCH: Please provide a valid asset description instead of a person's name."
-
-            **Example E (REJECT):**
-            Header: "Enhance the given asset description for IT infrastructure management"
-            Body: "cat goes to school"
-            Output: "CONTEXT_MISMATCH: Please provide technical asset information instead of casual content."
-            
-            **Example F (ACCEPT - Correct Domain Match):**
-            Header: "Enhance the given medical equipment description for healthcare management"
-            Body: "cardiac monitor ECG machine"
-            Output: "The cardiac monitor ECG machine is a critical diagnostic device..."
-            
-            **Example G (REJECT - Cross-Domain Mismatch):**
-            Header: "Enhance the given medical equipment description for healthcare management"
-            Body: "Dell PowerEdge server"
-            Output: "CONTEXT_MISMATCH: Please provide medical equipment instead of IT infrastructure."
-            
-            **Example H (REJECT - Cross-Domain Mismatch):**
-            Header: "Enhance the given asset description for IT infrastructure management"  
-            Body: "cardiac monitor ECG machine"
-            Output: "CONTEXT_MISMATCH: Please provide IT infrastructure assets instead of medical equipment."
             
             CRITICAL OUTPUT RULES (DO NOT VIOLATE):
             - Start directly with the enriched content. NEVER begin with phrases like: "Here is...", "Here’s...", "Below is...", "The following...", "Here is the rewritten...", "Here is a summary".
@@ -238,25 +153,16 @@ class Mode2:
     ) -> str:
         style_profile = self._build_style_profile(header)
         message = (
-            f"HEADER: {header}\n"
-            f"ORIGINAL TEXT: {text}\n"
+            "Based on the role specified in the header, enrich the text.\n"
+            f"HEADER (authoritative style spec): {header}\n"
             f"STYLE PROFILE: {style_profile}\n\n"
-            
-            "PROCESSING INSTRUCTIONS:\n"
-            "1. First validate if the text aligns with the header context using your system prompt logic\n"
-            "2. Be strict about clear domain mismatches (e.g., biology content for email headers)\n"
-            "3. Then choose your response:\n\n"
-            
-            "If content is aligned with header context:\n"
-            "- Preserve the original meaning and factual intent\n"
-            "- Maintain the EXACT tone/medium implied by the header\n"
-            "- Enhance clarity, structure, depth, and professionalism\n"
-            "- Output ONLY the enriched content (no validation messages)\n\n"
-            
-            "If content is NOT aligned with header context:\n"
-            "- Output ONLY: CONTEXT_MISMATCH: [friendly explanation of the mismatch]\n\n"
-            
-            "CRITICAL: Do not explain your validation process. Either enrich the content or return a mismatch message.\n"
+            f"ORIGINAL TEXT:\n{text}\n\n"
+            "INSTRUCTIONS:\n"
+            "- Preserve the original meaning and factual intent.\n"
+            "- Maintain the EXACT tone/medium implied by the header across every generation (no drift).\n"
+            "- If the header implies a medium (email, abstract, marketing copy, technical doc, story), format accordingly and stay consistent.\n"
+            "- Enhance clarity, structure, depth, and professionalism (if professional context).\n"
+            "- Do NOT add meta explanations or labels. Output ONLY the enriched content.\n"
         )
         # (f"""
         #     Based on the role and tone defined in the header, intelligently enrich and refine the following text.
@@ -366,15 +272,7 @@ class Mode2:
             temperature=gen_params["temperature"],
             top_p=gen_params["top_p"]
         )
-        
-        # Check for context validation failure
-        processed_result = self._postprocess(completion)
-        if processed_result.strip().startswith("CONTEXT_MISMATCH:"):
-            # Extract the friendly message after the colon
-            mismatch_message = processed_result.replace("CONTEXT_MISMATCH:", "").strip()
-            raise ValueError(f"Content does not align with the specified context. {mismatch_message}")
-        
-        return processed_result
+        return self._postprocess(completion)
 
     # --- Post-processing helpers ---
     _META_PREFIX_PATTERNS = [

@@ -238,6 +238,12 @@ async def autocomplete(request: AutocompleteRequest):
             output_format=request.output_format if request.output_format != "markdown" else None,
             min_words_used=effective_min_words_mode1 if request.mode == ModeType.mode_1 else None
         )
+    except ValueError as e:
+        # Handle context validation errors from Mode2
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
     except httpx.RequestError as e:
         raise HTTPException(
             status_code=503,
