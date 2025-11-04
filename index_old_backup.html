@@ -826,8 +826,17 @@
                 } else if (words <= 500) {
                     mode5TargetHint.textContent = `No target: will default to 100 words (document has ${words}).`;
                 } else {
-                    const autoTarget = Math.max(1, Math.round(words * 0.20));
-                    mode5TargetHint.textContent = `No target: will auto-summarize to 20% ≈ ${autoTarget} words (document has ${words}).`;
+                    // Calculate adaptive compression ratio
+                    let ratio;
+                    if (words <= 50) ratio = 0.75;
+                    else if (words <= 100) ratio = 0.55;
+                    else if (words <= 200) ratio = 0.40;
+                    else if (words <= 400) ratio = 0.30;
+                    else if (words <= 800) ratio = 0.25;
+                    else ratio = 0.20;
+                    
+                    const autoTarget = Math.max(15, Math.round(words * ratio));
+                    mode5TargetHint.textContent = `No target: adaptive compression (${Math.round(ratio*100)}%) ≈ ${autoTarget} words (document has ${words}).`;
                 }
             }
         }

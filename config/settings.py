@@ -7,20 +7,16 @@ this file—leave those in environment variables (.env) for security.
 
 # Chunking parameters
 CHUNK_TARGET_WORDS: int = 1000      # Target words per chunk before summarization
-CHUNK_MIN_WORDS: int = 750          # Minimum words to accept a chunk (unused yet – reserved)
 CHUNK_OVERLAP_PCT: float = 0.12     # Fractional overlap between chunks (12%)
 
-# Summarization compression ratios
+# Summarization compression ratios (ADAPTIVE SYSTEM)
 PER_CHUNK_SUMMARY_RATIO: float = 0.20        # Each chunk compressed to ~20% of its original words
-FINAL_SUMMARY_RATIO_DEFAULT: float = 0.20    # Final target ratio vs original full document
+# NOTE: FINAL_SUMMARY_RATIO is now ADAPTIVE based on document size:
+# ≤50 words: 75%, 51-100: 55%, 101-200: 40%, 201-400: 30%, 401-800: 25%, 801+: 20%
 
 # File handling limits
 MAX_FILE_MB: int = 10               # Reject files larger than this size (MB)
 MAX_FINAL_WORDS: int = 2000         # Safety cap for final summary length
-
-# Future tuning constants (placeholders for later stages)
-FINAL_REFINEMENT_MAX_TOKENS: int = 3000      # Max tokens budget for final refinement pass (planner will clamp)
-CHUNK_SUMMARY_MAX_TOKENS: int = 600          # Max tokens budget per chunk summarization call
 
 # Validation thresholds
 MIN_EXTRACTED_WORDS: int = 20       # Minimum viable document length
@@ -49,21 +45,3 @@ MAX_PROMPT_LENGTH: int = 2000  # characters
 #   POSTGRES_READONLY_DSN_TEMPLATE = "postgresql://readonly_user:password@db-host:5432/{db}"
 # Set this in your environment or override here. Clients never send credentials.
 POSTGRES_READONLY_DSN_TEMPLATE: str | None = "postgresql://postgres:michwaleh@localhost:5432/{db}"
-
-
-# def summary_target_words(original_words: int, ratio: float | None = None) -> int:
-# 	"""Compute the word target for the final summary.
-
-# 	Args:
-# 		original_words: Total words in cleaned full document.
-# 		ratio: Optional override ratio (defaults to FINAL_SUMMARY_RATIO_DEFAULT).
-
-# 	Returns:
-# 		Integer target word count (bounded by MAX_FINAL_WORDS)
-# 	"""
-# 	r = ratio if ratio is not None else FINAL_SUMMARY_RATIO_DEFAULT
-# 	r = max(0.05, min(r, 0.5))  # guardrail: no less than 5%, no more than 50%
-# 	target = int(original_words * r)
-# 	if MAX_FINAL_WORDS:
-# 		target = min(target, MAX_FINAL_WORDS)
-# 	return max(MIN_EXTRACTED_WORDS, target)

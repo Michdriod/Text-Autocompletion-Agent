@@ -899,6 +899,44 @@
                         </div>
                     </div>
                     
+                    <!-- Mode 2 - Category Input (Alternative to Header) -->
+                    <div class="form-group hidden" id="category-input-group">
+                        <label class="form-label">Category (Alternative to Header)</label>
+                        <input 
+                            type="text" 
+                            id="categoryInput" 
+                            class="form-input" 
+                            placeholder="e.g., incidents, assets, problems, tickets..."
+                        >
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                            💡 Use predefined categories like: <strong>incidents</strong>, <strong>assets</strong>, <strong>problems</strong>, <strong>tickets</strong>, <strong>service-requests</strong>, <strong>knowledge-base</strong>
+                        </div>
+                        <div class="counter">
+                            <button class="counter-toggle" onclick="toggleCounter('category')">
+                                <span class="counter-arrow" id="category-arrow">▼</span>
+                                Stats
+                            </button>
+                            <div class="counter-details" id="category-counter-details">
+                                <span id="category-counter">0 words, 0 characters</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Mode 2 - Input Mode Toggle -->
+                    <div class="form-group hidden" id="mode2-toggle-group">
+                        <label class="form-label">Input Mode</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="input-header" name="mode2-input" value="header" checked>
+                                <label for="input-header" class="radio-label">📝 Custom Header</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="input-category" name="mode2-input" value="category">
+                                <label for="input-category" class="radio-label">🏷️ Predefined Category</label>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Modes 4, 6 - Body Input -->
                     <div class="form-group hidden" id="body-input-group">
                         <label class="form-label" id="body-label">Body (Description or JSON)</label>
@@ -1334,6 +1372,8 @@
         // Individual input groups
         const textInputGroup = document.getElementById('text-input-group');
         const headerInputGroup = document.getElementById('header-input-group');
+        const categoryInputGroup = document.getElementById('category-input-group');
+        const mode2ToggleGroup = document.getElementById('mode2-toggle-group');
         const bodyInputGroup = document.getElementById('body-input-group');
         const parametersSection = document.getElementById('parameters-section');
         
@@ -1384,6 +1424,10 @@
                 headerInputGroup.classList.toggle('hidden', !config.requiresHeader);
                 bodyInputGroup.classList.toggle('hidden', !config.requiresBody);
                 parametersSection.classList.toggle('hidden', false);
+                
+                // Mode 2 specific: Show category system
+                categoryInputGroup.classList.toggle('hidden', mode !== 'mode_2');
+                mode2ToggleGroup.classList.toggle('hidden', mode !== 'mode_2');
                 
                 // Show/hide output format selector for Mode 2 only
                 const outputFormatGroup = document.getElementById('output-format-group');
@@ -1492,6 +1536,30 @@
         inputText.addEventListener('input', () => updateCounter(inputText, textCounter));
         headerInput.addEventListener('input', () => updateCounter(headerInput, headerCounter));
         bodyInput.addEventListener('input', () => updateCounter(bodyInput, bodyCounter));
+        
+        // Category input counter
+        const categoryInput = document.getElementById('categoryInput');
+        const categoryCounter = document.getElementById('category-counter');
+        categoryInput.addEventListener('input', () => updateCounter(categoryInput, categoryCounter));
+        
+        // Mode 2: Toggle between header and category input
+        const mode2InputRadios = document.querySelectorAll('input[name="mode2-input"]');
+        mode2InputRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const useCategory = radio.value === 'category';
+                headerInputGroup.classList.toggle('hidden', useCategory);
+                categoryInputGroup.classList.toggle('hidden', !useCategory);
+                
+                // Clear the inactive field
+                if (useCategory) {
+                    headerInput.value = '';
+                    updateCounter(headerInput, headerCounter);
+                } else {
+                    categoryInput.value = '';
+                    updateCounter(categoryInput, categoryCounter);
+                }
+            });
+        });
         
         // Parameter controls
         const minWords = document.getElementById('minWords');
@@ -1663,22 +1731,52 @@
                 data.text = text;
             }
             
-            // Add header if required
+            // Add header or category if required (Mode 2)
             if (config.requiresHeader) {
-                const header = headerInput.value.trim();
-                if (!header) {
-                    showStatus('error', 'Please enter a header/topic.');
-                    return;
+                if (currentMode === 'mode_2') {
+                    // Mode 2: Check if using category or header
+                    const useCategory = document.querySelector('input[name="mode2-input"]:checked').value === 'category';
+                    
+                    if (useCategory) {
+                        const category = categoryInput.value.trim();
+                        if (!category) {
+                            showStatus('error', 'Please enter a category (e.g., incidents, assets, problems).');
+                            return;
+                        }
+                        data.category = category;
+                    } else {
+                        const header = headerInput.value.trim();
+                        if (!header) {
+                            showStatus('error', 'Please enter a header/topic.');
+                            return;
+                        }
+                        
+                        // Validate minimum word count for header
+                        const headerWords = countWords(header);
+                        if (headerWords < minWordsRequired) {
+                            showStatus('error', `Please provide at least ${minWordsRequired} words in the header input. Current: ${headerWords} words.`);
+                            return;
+                        }
+                        
+                        data.header = header;
+                    }
+                } else {
+                    // Other modes: Use header as before
+                    const header = headerInput.value.trim();
+                    if (!header) {
+                        showStatus('error', 'Please enter a header/topic.');
+                        return;
+                    }
+                    
+                    // Validate minimum word count for header
+                    const headerWords = countWords(header);
+                    if (headerWords < minWordsRequired) {
+                        showStatus('error', `Please provide at least ${minWordsRequired} words in the header input. Current: ${headerWords} words.`);
+                        return;
+                    }
+                    
+                    data.header = header;
                 }
-                
-                // Validate minimum word count for header
-                const headerWords = countWords(header);
-                if (headerWords < minWordsRequired) {
-                    showStatus('error', `Please provide at least ${minWordsRequired} words in the header input. Current: ${headerWords} words.`);
-                    return;
-                }
-                
-                data.header = header;
             }
             
             // Add body if required (mode 4 expects JSON object, mode 6 expects string)
