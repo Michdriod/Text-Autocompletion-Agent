@@ -45,3 +45,58 @@ MAX_PROMPT_LENGTH: int = 2000  # characters
 #   POSTGRES_READONLY_DSN_TEMPLATE = "postgresql://readonly_user:password@db-host:5432/{db}"
 # Set this in your environment or override here. Clients never send credentials.
 POSTGRES_READONLY_DSN_TEMPLATE: str | None = "postgresql://postgres:michwaleh@localhost:5432/{db}"
+
+# Mode 6: KB Article Generation Configuration
+MIN_DESCRIPTION_WORDS: int = 12         # Minimum description words to accept
+VAGUE_SCORE_THRESHOLD: float = 0.58     # Warn if vagueness score >= this (suggest more details)
+COVERAGE_THRESHOLD: float = 0.75        # Minimum keyword coverage required
+
+# User-selectable length ranges (flexible word counts)
+LENGTH_RANGES = {
+    'short': (250, 450),         # Quick reference KB
+    'medium': (500, 900),        # Standard KB article
+    'long': (1000, 1500),        # Detailed guide
+    'very_long': (1500, 2500)    # Comprehensive documentation
+}
+
+# Section inclusion by length (IT structure preserved, scales with length)
+SECTIONS_BY_LENGTH = {
+    'short': ['purpose', 'steps', 'validation'],
+    'medium': ['purpose', 'symptoms', 'steps', 'validation', 'troubleshooting', 'notes'],
+    'long': ['purpose', 'symptoms', 'steps', 'validation', 'troubleshooting', 'notes'],
+    'very_long': ['prerequisites', 'purpose', 'symptoms', 'steps', 'validation', 
+                  'troubleshooting', 'notes', 'best_practices', 'faq']
+}
+
+# Section weight distribution (IT-focused: Steps remain dominant)
+SECTION_WEIGHTS = {
+    'prerequisites': 0.05,
+    'purpose': 0.08,
+    'symptoms': 0.10,
+    'steps': 0.40,              # Largest section (IT procedural focus)
+    'validation': 0.15,
+    'troubleshooting': 0.08,
+    'notes': 0.10,
+    'best_practices': 0.06,
+    'faq': 0.08
+}
+
+# Minimum word floors per section (safety bounds)
+SECTION_MIN_FLOORS = {
+    'prerequisites': 40,
+    'purpose': 60,
+    'symptoms': 70,
+    'steps': 120,               # Steps always substantial
+    'validation': 80,
+    'troubleshooting': 60,
+    'notes': 50,
+    'best_practices': 50,
+    'faq': 60
+}
+
+# Complexity multipliers for length adjustment (fine-tuning)
+COMPLEXITY_MULTIPLIERS = {
+    'simple': 0.95,
+    'procedural': 1.0,
+    'troubleshooting': 1.05
+}

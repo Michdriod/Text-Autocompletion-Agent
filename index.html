@@ -571,7 +571,6 @@
         .result-content {
             color: var(--text-secondary);
             line-height: 1.6;
-            white-space: pre-wrap;
             word-wrap: break-word;
         }
         
@@ -580,17 +579,62 @@
         .result-content h3 {
             color: var(--text-primary);
             margin: 1rem 0 0.5rem;
+            font-weight: 600;
+        }
+        
+        .result-content h1 {
+            font-size: 1.75rem;
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .result-content h2 {
+            font-size: 1.35rem;
+            color: var(--primary-light);
+            margin-top: 1.25rem;
+            margin-bottom: 0.6rem;
+        }
+        
+        .result-content h3 {
+            font-size: 1.1rem;
+            color: var(--accent-blue);
         }
         
         .result-content p {
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.6rem;
+            line-height: 1.6;
+        }
+        
+        .result-content ul,
+        .result-content ol {
+            margin: 0.5rem 0;
+            padding-left: 2rem;
+        }
+        
+        .result-content li {
+            margin-bottom: 0.3rem;
+            line-height: 1.5;
+        }
+        
+        .result-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .result-content em {
+            color: var(--accent-blue);
+            font-style: italic;
         }
         
         .result-content code {
             background: var(--bg-card);
-            padding: 0.2rem 0.4rem;
+            padding: 0.2rem 0.5rem;
             border-radius: 4px;
             font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--accent-purple);
+            border: 1px solid var(--border-color);
         }
         
         .result-content pre {
@@ -598,6 +642,42 @@
             padding: 1rem;
             border-radius: 8px;
             overflow-x: auto;
+            border: 1px solid var(--border-color);
+        }
+        
+        .result-content pre code {
+            background: none;
+            padding: 0;
+            border: none;
+            color: var(--text-secondary);
+        }
+        
+        .result-content blockquote {
+            border-left: 4px solid var(--primary-light);
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+            background: rgba(102, 126, 234, 0.05);
+            font-style: italic;
+        }
+        
+        .result-content hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 2rem 0;
+        }
+        
+        /* KB Article specific styling */
+        .result-content .kb-section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-light);
+        }
+        
+        .result-content input[type="checkbox"] {
+            margin-right: 0.5rem;
+            cursor: pointer;
         }
         
         /* Metadata Pills */
@@ -956,6 +1036,47 @@
                         </div>
                     </div>
                     
+                    <!-- Mode 6 - Article Length Selection -->
+                    <div class="form-group hidden" id="article-length-group">
+                        <label class="form-label">Article Length</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="length-short" name="article-length" value="short">
+                                <label for="length-short" class="radio-label" title="250-450 words, 3 sections">📄 Short</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="length-medium" name="article-length" value="medium" checked>
+                                <label for="length-medium" class="radio-label" title="500-900 words, 5 sections">📝 Medium</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="length-long" name="article-length" value="long">
+                                <label for="length-long" class="radio-label" title="1000-1500 words, 6 sections">📚 Long</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="length-very-long" name="article-length" value="very_long">
+                                <label for="length-very-long" class="radio-label" title="1500-2500 words, 9 sections">📖 Very Long</label>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.75rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid var(--accent-blue);">
+                            💡 <strong>Short:</strong> Quick reference (3 sections) • <strong>Medium:</strong> Standard KB article (5 sections) • <strong>Long:</strong> Detailed guide (6 sections) • <strong>Very Long:</strong> Comprehensive documentation (9 sections)
+                        </div>
+                    </div>
+                    
+                    <!-- Mode 6 - Keywords Input (Optional) -->
+                    <div class="form-group hidden" id="keywords-input-group">
+                        <label class="form-label">Keywords (Optional)</label>
+                        <input 
+                            type="text" 
+                            id="keywordsInput" 
+                            class="form-input" 
+                            placeholder="e.g., VPN, troubleshooting, network (comma-separated)"
+                        >
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                            💡 Separate multiple keywords with commas. If not provided, keywords will be extracted automatically from your content.
+                        </div>
+                    </div>
+                    
+                    <!-- Parameters section (hidden for Mode 6) -->
                     <div id="parameters-section">
                         <div class="slider-group">
                             <div class="slider-header">
@@ -1423,7 +1544,9 @@
                 textInputGroup.classList.toggle('hidden', !config.requiresText);
                 headerInputGroup.classList.toggle('hidden', !config.requiresHeader);
                 bodyInputGroup.classList.toggle('hidden', !config.requiresBody);
-                parametersSection.classList.toggle('hidden', false);
+                
+                // Mode 6 specific: Hide parameters section, only show article length
+                parametersSection.classList.toggle('hidden', mode === 'mode_6');
                 
                 // Mode 2 specific: Show category system
                 categoryInputGroup.classList.toggle('hidden', mode !== 'mode_2');
@@ -1432,6 +1555,14 @@
                 // Show/hide output format selector for Mode 2 only
                 const outputFormatGroup = document.getElementById('output-format-group');
                 outputFormatGroup.classList.toggle('hidden', mode !== 'mode_2');
+                
+                // Mode 6 specific: Show article length selector
+                const articleLengthGroup = document.getElementById('article-length-group');
+                articleLengthGroup.classList.toggle('hidden', mode !== 'mode_6');
+                
+                // Mode 6 specific: Show keywords input
+                const keywordsInputGroup = document.getElementById('keywords-input-group');
+                keywordsInputGroup.classList.toggle('hidden', mode !== 'mode_6');
                 
                 // Update placeholders
                 const headerInput = document.getElementById('headerInput');
@@ -1445,9 +1576,9 @@
                     bodyInput.placeholder = 'Enter structured JSON data (e.g., {"key": "value"})...';
                     bodyLabel.textContent = 'Body (JSON)';
                 } else if (mode === 'mode_6') {
-                    headerInput.placeholder = 'Enter topic or subject for document generation...';
-                    bodyInput.placeholder = 'Enter detailed description or requirements...';
-                    bodyLabel.textContent = 'Body (Description)';
+                    headerInput.placeholder = 'Enter article title (e.g., "How to Reset Password")';
+                    bodyInput.placeholder = 'Enter article description/requirements (e.g., "Step-by-step guide for users to reset their password...")';
+                    bodyLabel.textContent = 'Description';
                 }
                 
                 // Update min words default
@@ -1460,7 +1591,7 @@
                     'mode_2': 'Enrich Content',
                     'mode_3': 'Refine Text',
                     'mode_4': 'Generate Description',
-                    'mode_6': 'Generate Document'
+                    'mode_6': 'Generate Article'
                 };
                 document.getElementById('btn-text').textContent = btnTexts[mode] || 'Process';
             }
@@ -1800,7 +1931,34 @@
                 }
             }
             
-            // Send request to backend
+            // Add article length for Mode 6
+            if (currentMode === 'mode_6') {
+                const selectedLength = document.querySelector('input[name="article-length"]:checked');
+                if (selectedLength) {
+                    data.length = selectedLength.value;
+                }
+                
+                // Get keywords if provided
+                const keywordsInput = document.getElementById('keywordsInput').value.trim();
+                const keywords = keywordsInput 
+                    ? keywordsInput.split(',').map(k => k.trim()).filter(k => k.length > 0)
+                    : [];
+                
+                // Mode 6 uses a different endpoint with different field names
+                const mode6Data = {
+                    title: data.header,
+                    description: data.body,
+                    length: data.length || 'medium',
+                    keywords: keywords.length > 0 ? keywords : null,
+                    output_format: 'markdown'
+                };
+                
+                // Send to /generate-article endpoint for Mode 6
+                await processRequest('http://localhost:8000/generate-article', mode6Data, 'POST');
+                return;
+            }
+            
+            // Send request to backend (for modes 1-4)
             await processRequest('http://localhost:8000/autocomplete', data, 'POST');
         });
         
@@ -1963,8 +2121,17 @@
                 const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
                 
                 if (response.ok) {
-                    showStatus('success', 'Processing complete!');
-                    displayResults(result, elapsed);
+                    // Check if it's a Mode 6 validation failure
+                    if (result.success === false && result.suggestions) {
+                        showStatus('error', result.error || 'Validation failed');
+                        if (result.suggestions && result.suggestions.length > 0) {
+                            const suggestionList = result.suggestions.map(s => `• ${s}`).join('<br>');
+                            showStatus('info', `Suggestions:<br>${suggestionList}`);
+                        }
+                    } else {
+                        showStatus('success', 'Processing complete!');
+                        displayResults(result, elapsed);
+                    }
                 } else {
                     showStatus('error', result.detail || 'An error occurred during processing.');
                 }
@@ -1982,6 +2149,67 @@
             resultsContainer.classList.add('active');
             
             document.getElementById('result-time').textContent = `⏱️ ${elapsed}s`;
+            
+            // Mode 6 response structure (from /generate-article)
+            if (data.markdown && data.success !== undefined) {
+                // Enhanced rendering for KB articles
+                const htmlContent = marked.parse(data.markdown);
+                
+                // Wrap in a styled container for better KB article display
+                outputResult.innerHTML = `
+                    <div style="max-width: 100%; overflow-x: auto;">
+                        ${htmlContent}
+                    </div>
+                `;
+                
+                // Add interactive checkboxes for validation steps
+                const checkboxes = outputResult.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => {
+                    cb.addEventListener('change', function() {
+                        this.parentElement.style.opacity = this.checked ? '0.6' : '1';
+                        this.parentElement.style.textDecoration = this.checked ? 'line-through' : 'none';
+                    });
+                });
+                
+                // Display metrics if available
+                metadataContainer.innerHTML = '';
+                const metadataWrapper = document.getElementById('metadataWrapper');
+                let hasMetadata = false;
+                
+                if (data.metrics) {
+                    if (data.metrics.total_words) {
+                        addMetadata('Words', data.metrics.total_words, 'var(--success)');
+                        hasMetadata = true;
+                    }
+                    if (data.metrics.sections_generated) {
+                        addMetadata('Sections', data.metrics.sections_generated, 'var(--accent-blue)');
+                        hasMetadata = true;
+                    }
+                    if (data.metrics.keyword_coverage) {
+                        const coverage = Math.round(data.metrics.keyword_coverage * 100);
+                        const color = coverage >= 75 ? 'var(--success)' : coverage >= 50 ? 'var(--warning)' : 'var(--error)';
+                        addMetadata('Coverage', `${coverage}%`, color);
+                        hasMetadata = true;
+                    }
+                    if (data.metrics.length_choice) {
+                        const lengthLabel = data.metrics.length_choice.replace('_', ' ').split(' ')
+                            .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                        addMetadata('Article Length', lengthLabel, 'var(--accent-purple)');
+                        hasMetadata = true;
+                    }
+                    if (data.metrics.word_range) {
+                        addMetadata('Target Range', data.metrics.word_range, 'var(--text-muted)');
+                        hasMetadata = true;
+                    }
+                    if (data.metrics.generation_time) {
+                        addMetadata('Generation Time', data.metrics.generation_time, 'var(--text-muted)');
+                        hasMetadata = true;
+                    }
+                }
+                
+                metadataWrapper.style.display = hasMetadata ? 'block' : 'none';
+                return;
+            }
             
             // Display output based on response structure
             if (data.completion && (!data.markdown_summary && !data.plain_summary && !data.html_summary)) {
@@ -2020,6 +2248,13 @@
             // Add mode metadata
             if (data.mode) {
                 addMetadata('Mode', data.mode.replace('_', ' ').toUpperCase());
+                hasMetadata = true;
+            }
+            
+            // Add article length metadata for Mode 6
+            if (data.length) {
+                const lengthLabel = data.length.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                addMetadata('Article Length', lengthLabel);
                 hasMetadata = true;
             }
             

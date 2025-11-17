@@ -1,23 +1,34 @@
 """
-Document Development Handler (Mode 6)
--------------------------------------
-Handles incoming API requests to generate fully developed, 
-professional documents based on a title (header) and description (body).
+KB Article Generation Handler (Mode 6)
+---------------------------------------
+Handles API requests to generate structured IT knowledge base articles.
 
 Endpoint:
-    POST /api/document/develop
+    POST /generate-article
 
 Expected JSON:
     {
-        "header": "Proposal for AI-driven Customer Support",
-        "body": "We aim to build an AI assistant that...",
-        "max_output_length": {"type": "words", "value": 800}
+        "title": "How to Configure SSL Certificates",
+        "description": "Users need steps to install SSL certificates on Apache server...",
+        "length": "medium",  # Options: short, medium, long, very_long
+        "keywords": ["SSL", "Apache", "certificate"],
+        "output_format": "markdown"
     }
 
 Returns:
     {
         "success": true,
-        "content": "<formatted document output>"
+        "title": "...",
+        "markdown": "...",
+        "html": "..." (optional),
+        "metrics": {...}
+    }
+    
+    OR (if validation fails):
+    {
+        "success": false,
+        "error": "Validation failed",
+        "suggestions": [...]
     }
 """
 
@@ -25,95 +36,73 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from logic.mode_6 import Mode6
 import logging
-from services.document_schema import DocumentDevelopmentRequest, DocumentDevelopmentResponse
 import time
 
-# --- Initialize Router & Logger ---
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# --- Request Schema ---
-class DocumentDevelopmentRequest(BaseModel):
-    header: str = Field(..., description="The document's title or main purpose.")
-    body: str = Field(..., description="Descriptive content or user-provided notes.")
-    max_output_length: dict | None = Field(
-        default=None,
-        description="Optional constraint for max output length (words or characters)."
-    )
 
-# --- API Endpoint ---
-@router.post("/api/document/develop")
-async def develop_document(req: DocumentDevelopmentRequest):
-    """
-    POST /api/document/develop
-    Generates a professionally structured document from given header and body.
-    """
+class ArticleRequest(BaseModel):
+    title: str = Field(..., description="Article title (min 5 chars)")
+    description: str = Field(..., description="Detailed description (min 12 words)")
+    length: str = Field(default="medium", description="Article length: short, medium, long, very_long")
+    keywords: list[str] | None = Field(default=None, description="Optional keywords")
+    output_format: str = Field(default="markdown", description="Output format: markdown, html, or all")
+
+
+class ArticleResponse(BaseModel):
+    success: bool
+    title: str | None = None
+    markdown: str | None = None
+    html: str | None = None
+    metrics: dict | None = None
+    error: str | None = None
+    suggestions: list[str] | None = None
+
+
+@router.post("/generate-article", response_model=ArticleResponse)
+async def generate_article(req: ArticleRequest):
+    """Generate a structured IT KB article from title and description."""
     try:
-        logger.info("🟢 Received new Mode 6 document development request.")
+        start = time.time()
+        logger.info(f"[Mode6] Generating {req.length} article: {req.title[:50]}...")
         
         mode6 = Mode6()
-        result = await mode6.process(
-            header=req.header,
-            body=req.body,
-            max_output_length=req.max_output_length
+        result = await mode6.generate_article(
+            title=req.title,
+            description=req.description,
+            length=req.length,
+            keywords=req.keywords,
+            output_format=req.output_format
         )
-
-        logger.info("✅ Document successfully developed.")
-        return {
-            "success": True,
-            "mode": "document_development",
-            "content": result
-        }
-
-    except ValueError as ve:
-        logger.warning(f"⚠️ Validation error: {ve}")
-        raise HTTPException(status_code=400, detail=str(ve))
-
+        
+        elapsed = round(time.time() - start, 2)
+        logger.info(f"[Mode6] Article generated | Words: {result['metrics']['total_words']} | Time: {elapsed}s")
+        
+        return ArticleResponse(
+            success=True,
+            title=result['title'],
+            markdown=result['markdown'],
+            html=result.get('html'),
+            metrics={**result['metrics'], 'generation_time': f"{elapsed}s"}
+        )
+        
+    except ValueError as e:
+        logger.warning(f"[Mode6] Validation error: {e}")
+        error_msg = str(e)
+        suggestions = []
+        
+        # Extract suggestions from error message
+        if "Suggestions:" in error_msg:
+            parts = error_msg.split("Suggestions:")
+            if len(parts) > 1:
+                suggestions = [s.strip().lstrip('•-') for s in parts[1].strip().split('\n') if s.strip()]
+        
+        return ArticleResponse(
+            success=False,
+            error=error_msg.split("\n\nSuggestions:")[0] if suggestions else error_msg,
+            suggestions=suggestions if suggestions else None
+        )
     except Exception as e:
-        logger.error(f"❌ Document development failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-
-@router.post("/api/document/develop", response_model=DocumentDevelopmentResponse)
-async def develop_document(request: DocumentDevelopmentRequest):
-    """
-    API endpoint for Mode 6 - Document Development Agent.
-    Generates a polished, professional document from the given header and body.
-    """
-    try:
-        start_time = time.time()
-        mode6 = Mode6()
-
-        # Run the async generation process
-        document_output = await mode6.process(
-            header=request.header,
-            body=request.body,
-            max_output_length=request.max_output_length
-        )
-
-        # --- Logging (internal only) ---
-        elapsed = round(time.time() - start_time, 2)
-        word_count = len(document_output.split())
-        approx_pages = round(word_count / 350, 2)
-
-        logger.info(
-            f"[Mode 6] Document generated successfully | "
-            f"Words: {word_count} | Pages: {approx_pages} | "
-            f"Duration: {elapsed}s"
-        )
-
-        # --- Response ---
-        return DocumentDevelopmentResponse(
-            status="success",
-            document=document_output,
-            meta={
-                "approx_pages": approx_pages,
-                "estimated_words": word_count,
-                "generation_time": f"{elapsed}s"
-            }
-        )
-
-    except Exception as e:
-        logger.error(f"[Mode 6] Document generation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"[Mode6] Generation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Article generation failed")

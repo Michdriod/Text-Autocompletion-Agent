@@ -11,7 +11,6 @@ from logic.mode_1 import Mode1
 from logic.mode_2 import Mode2
 from logic.mode_3 import Mode3
 from logic.mode_4 import Mode4
-from logic.mode_6 import Mode6
 from utils.validator import get_default_min_words, validate_minimum_word_count, validate_combined_word_count
 from utils.Mode2_category_mapping import is_valid_category, get_available_categories
 router = APIRouter()
@@ -44,7 +43,6 @@ class ModeType(str, Enum):
     mode_3 = "mode_3"  # Input Refinement
     mode_4 = "mode_4"  # Description Agent
     mode_5 = "mode_5"  # Document Summarization (handled by /summarize-document)
-    mode_6 = "mode_6"  # Document Development
 
 # Request model for text enrichment
 class AutocompleteRequest(BaseModel):
@@ -108,26 +106,8 @@ async def autocomplete(request: AutocompleteRequest):
                     detail="Body is required for Description Agent mode."
                 )
 
-        # Validation for Mode 6
-        if request.mode == ModeType.mode_6:
-            if not request.header:
-                raise HTTPException(
-                    status_code=422,
-                    detail="Header is required for Document Development mode."
-                )
-            if not request.body or not isinstance(request.body, str):
-                raise HTTPException(
-                    status_code=422,
-                    detail="Body (description) is required for Document Development mode and must be a string."
-                )
-            if not validate_combined_word_count(request.header, request.body, request.mode):
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Header and body combined must contain at least {min_words} words."
-                )
-
         # Validation for Mode 1
-        elif request.mode == ModeType.mode_1:
+        if request.mode == ModeType.mode_1:
             if not request.text:
                 raise HTTPException(
                     status_code=422,
@@ -233,13 +213,6 @@ async def autocomplete(request: AutocompleteRequest):
                 body=request.body,
                 max_output_length=request.max_output_length
             )
-        elif request.mode == ModeType.mode_6:
-            mode_logic = Mode6()
-            completion = await mode_logic.process(
-                header=request.header,
-                body=request.body,
-                max_output_length=request.max_output_length
-            )
         return AutocompleteResponse(
             completion=completion,
             mode=request.mode,
@@ -272,8 +245,7 @@ async def health_check():
             "mode_2": "Structured Context Enrichment",
             "mode_3": "Input Refinement",
             "mode_4": "Description Agent",
-            "mode_5": "Document Summarization",
-            "mode_6": "Document Development"
+            "mode_5": "Document Summarization"
         },
         "features": {
             "dynamic_min_input_words": True,

@@ -9,6 +9,7 @@ import os
 
 from handlers.autocomplete import router as autocomplete_router
 from handlers.summarize_document import router as summarize_document_router
+from handlers.document_generation import router as document_generation_router
 
 # Load environment variables from .env file
 load_dotenv()
@@ -39,6 +40,7 @@ app.add_middleware(
 # Include the autocomplete router and summarize document router
 app.include_router(autocomplete_router)
 app.include_router(summarize_document_router)
+app.include_router(document_generation_router)
 
 @app.get("/")
 async def root():
@@ -76,10 +78,11 @@ async def root():
                 "id": "mode_5",
                 "name": "Document Summarization",
                 "description": "Generate summary from structured data"
-            },{
+            },
+            {
                 "id": "mode_6",
-                "name": "Document Development",
-                "description": "Develop documents from user input"
+                "name": "KB Article Generation",
+                "description": "Generate structured knowledge base articles from title and description"
             }
         ],
         "features": [
