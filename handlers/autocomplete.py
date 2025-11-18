@@ -11,8 +11,8 @@ from logic.mode_1 import Mode1
 from logic.mode_2 import Mode2
 from logic.mode_3 import Mode3
 from logic.mode_4 import Mode4
+
 from utils.validator import get_default_min_words, validate_minimum_word_count, validate_combined_word_count
-from utils.Mode2_category_mapping import is_valid_category, get_available_categories
 router = APIRouter()
 
 
@@ -44,12 +44,12 @@ class ModeType(str, Enum):
     mode_4 = "mode_4"  # Description Agent
     mode_5 = "mode_5"  # Document Summarization (handled by /summarize-document)
 
+
 # Request model for text enrichment
 class AutocompleteRequest(BaseModel):
     text: Optional[str] = None
     mode: ModeType
     header: Optional[str] = None
-    category: Optional[str] = None
     body: Optional[Union[str, Dict[str, Any]]] = None 
     # body: Optional[Dict[str, Any]] = None  # For mode_4
     min_input_words: Optional[int] = None
@@ -73,29 +73,11 @@ async def autocomplete(request: AutocompleteRequest):
     try:
         min_words = request.min_input_words or get_default_min_words(request.mode)
 
-        # Validation for Mode 2 - either header OR category required, not both, not neither
-        if request.mode == ModeType.mode_2:
-            if not request.header and not request.category:
-                raise HTTPException(
-                    status_code=422,
-                    detail="Either 'header' or 'category' is required for Mode 2." # Available categories: " + ", ".join(get_available_categories())
-                )
-            if request.header and request.category:
-                raise HTTPException(
-                    status_code=422,
-                    detail="Cannot specify both 'header' and 'category' for Mode 2. Use either one or the other."
-                )
-            if request.category and not is_valid_category(request.category):
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Invalid category '{request.category}'." # Available categories: " + ", ".join(get_available_categories())
-                )
-
-        # Validation for Mode 4
-        if request.mode == ModeType.mode_4 and not request.header:
+        # Validation for Mode 2 and Mode 4
+        if request.mode in [ModeType.mode_2, ModeType.mode_4] and not request.header:
             raise HTTPException(
                 status_code=422,
-                detail="Header is required for Mode 4."
+                detail=f"Header is required for {request.mode}."
             )
 
         # Validation for Mode 4
@@ -156,7 +138,6 @@ async def autocomplete(request: AutocompleteRequest):
             completion = await mode_logic.process(
                 text=request.text,
                 header=request.header,
-                category=request.category,
                 max_output_length=request.max_output_length,
                 output_format=request.output_format or "markdown"
             )
@@ -213,6 +194,8 @@ async def autocomplete(request: AutocompleteRequest):
                 body=request.body,
                 max_output_length=request.max_output_length
             )
+
+        # Return standard response (Mode 2 with formatting handled above)
         return AutocompleteResponse(
             completion=completion,
             mode=request.mode,
@@ -235,6 +218,7 @@ async def autocomplete(request: AutocompleteRequest):
             status_code=500,
             detail=f"Internal server error: {str(e)}"
         )
+        
 # Health check endpoint
 @router.get("/health")
 async def health_check():

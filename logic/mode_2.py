@@ -2,7 +2,6 @@ from typing import Optional, Dict, Union
 import re
 from utils.generator import generate
 from utils.validator import build_length_instruction, plan_output_length
-from utils.Mode2_category_mapping import MODE2_CATEGORY_HEADERS, get_category_header
 # Mode 2: Structured Context Enrichment
 # This mode generates meaningful output from a topic and its context.
 # It elaborates on the topic using the provided context while maintaining
@@ -13,28 +12,6 @@ class Mode2:
     Creative Expansion Mode
     Expands user input into a more detailed, vivid, and engaging passage while preserving the original meaning and intent.
     """
-    def resolve_header(self, header: Optional[str] = None, category: Optional[str] = None) ->str:
-        """
-        Resolve the header to use based on parameters:
-        1. If both header and category provided - ERROR
-        2. If category provided - use predefined header for that category
-        3. If header provided - use the provided header
-        4. If neither provided - ERROR
-        """
-        
-        # Validate that both aren't provided
-        if header and category:
-            raise ValueError("Please provide either 'header' or 'category', not both.")
-        
-        if category:
-            #Use predefined header for category
-            return get_category_header(category)
-        elif header:
-            # Use provided header (current behavior)
-            return header
-        else:
-            # Neither provided - error
-            raise ValueError("Either 'header' or 'category' must be provided.")
 
     def get_system_prompt(self, output_format: str = "markdown") -> str:
         base_prompt = """
@@ -201,6 +178,57 @@ class Mode2:
             - Output only the enriched result.
             
             """
+            
+            
+            # """
+            # You are Mode2 — a versatile content enrichment specialist.
+            # Your task is to analyze the `{header}` (which defines your role and tone)
+            # and the `{text}` (which contains the base content), then intelligently enrich, expand,
+            # or refine the text to produce a polished, coherent, and purpose-appropriate version.
+
+            # You must infer the **scenario or purpose** of the text automatically.
+            # For example:
+            # - If `{header}` includes words like “Email” or “Message”, infer it’s a professional or friendly email.
+            # - If it includes “Marketing”, infer persuasive marketing copy.
+            # - If it includes “Documentation” or “Technical”, infer technical writing.
+            # - If it includes “Story”, infer narrative or creative writing.
+            # - If none is specified, infer the likely intent from the text itself.
+
+            # When refining `{text}`, you should:
+            # - Correct grammar, spelling, and punctuation
+            # - Improve structure, tone, and clarity
+            # - Expand meaningfully where context implies detail or explanation
+            # - Adapt style and format naturally for the inferred medium (e.g., email, paragraph, documentation)
+            # - Preserve all original meaning, relationships, and intent
+
+            # Intelligent Inference:
+            # - If the scenario seems like an email or request, include a suitable **Subject line**
+            # and use proper email structure (greeting, body, closing).
+            # - If the text sounds like an article, add a natural **Title** or headline.
+            # - If the context is instructional or technical, organize it clearly with professional tone.
+            # - Always infer — never ask for — the subject or purpose.
+
+            # Avoid:
+            # - Adding irrelevant information or changing meaning
+            # - Restating the prompt or labeling sections (no "Header:", "Text:", "Output:")
+            # - Providing commentary or reasoning in your response
+            # - Producing robotic, overly formal, or verbose writing
+
+            # Special Output Rules:
+            # - Output **only** the final enriched version — no labels or explanations.
+            # - Format the response naturally according to the inferred scenario.
+            # - Ignore any word-count or length constraints unless explicitly specified.
+            # """
+            
+            
+                       
+            
+            # "You are a structured content generator. Your task is to create meaningful, "
+            # "engaging content based on the provided topic and context. Focus on elaborating "
+            # "the topic using the context as a foundation. Maintain relevance and coherence "
+            # "while adding value through thoughtful expansion. Keep your output clear, "
+            # "well-structured, and focused on the topic."
+        
     
     def prepare_user_message(
         self, 
@@ -230,6 +258,20 @@ class Mode2:
             
             "CRITICAL: Do not explain your validation process. Either enrich the content or return a mismatch message.\n"
         )
+        # (f"""
+        #     Based on the role and tone defined in the header, intelligently enrich and refine the following text.
+
+        #     Header: {header}
+        #     Text: {text}
+
+        #     Analyze the text to infer its purpose or scenario (e.g., email, article, documentation, message) 
+        #     and format the enriched version accordingly. Correct grammar, enhance clarity, and maintain the original intent.
+
+        #     Produce only the final enriched version — no labels, comments, or meta text.
+        #     """)
+        
+        
+        
         
         return message + build_length_instruction(max_output_length)
 
@@ -275,6 +317,29 @@ class Mode2:
             goals.append("enrichment")
 
         return f"medium={medium}; tone={tone}; goals={','.join(goals)}; invariants=preserve meaning|no drift|no meta"
+        
+        # (
+        #     "Based on the role specified in the header, please enrich the text:"
+        #     f"Topic: {header}\n\n"
+        #     f"Context: {text}\n\n"
+        #     "Generate a meaningful elaboration of this topic using the provided context. "
+        #     "Focus on creating engaging, relevant content that expands on the topic while "
+        #     "maintaining coherence with the context. "
+        #     "Apply the specified enrichment approach while maintaining clarity and relevance."
+                        
+        #     # f"Topic: {header}\n\n"
+        #     # f"Context: {text}\n\n"
+        #     # "Generate a meaningful elaboration of this topic using the provided context. "
+        #     # "Focus on creating engaging, relevant content that expands on the topic while "
+        #     # "maintaining coherence with the context."
+        # )
+        
+        # if max_output_length:
+        #     length_type = max_output_length.get("type", "characters")
+        #     length_value = max_output_length.get("value", 200)
+        #     message += f"\n\nIMPORTANT: Keep your elaboration to a maximum of {length_value} {length_type}."
+        
+        # return message
     
     def get_generation_parameters(self) -> dict:
         # Slightly lowered temperature for tone stability
@@ -283,20 +348,15 @@ class Mode2:
     async def process(
         self, 
         text: str, 
-        header: Optional[str] = None,
-        category: Optional[str] = None,
+        header: str, 
         max_output_length: Optional[Dict[str, Union[str, int]]] = None,
         output_format: str = "markdown"
     ) -> str:
-        
-        # Resolve which header to use (this will validate and error if both provided)
-        resolved_header = self.resolve_header(header, category)
-        
         system_prompt = self.get_system_prompt(output_format)
         gen_params = self.get_generation_parameters()
         plan = plan_output_length("mode_2", max_output_length, text=text)
         length_instruction_target = max_output_length or plan["constraint"]
-        user_message = self.prepare_user_message(text, resolved_header, length_instruction_target)
+        user_message = self.prepare_user_message(text, header, length_instruction_target)
         max_tokens = plan["token_budget"]
         
         completion = await generate(
