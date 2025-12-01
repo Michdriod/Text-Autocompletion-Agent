@@ -34,9 +34,10 @@ Returns:
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from logic.mode_6 import Mode6
+from logic.mode_6_sectional import Mode6Sectional
 import logging
 import time
+import re
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -67,24 +68,34 @@ async def generate_article(req: ArticleRequest):
         start = time.time()
         logger.info(f"[Mode6] Generating {req.length} article: {req.title[:50]}...")
         
-        mode6 = Mode6()
-        result = await mode6.generate_article(
+        mode6 = Mode6Sectional()
+        markdown = await mode6.generate_article(
             title=req.title,
             description=req.description,
-            length=req.length,
             keywords=req.keywords,
-            output_format=req.output_format
+            length_mode=req.length,
+            audience=getattr(req, 'audience', None)
         )
         
         elapsed = round(time.time() - start, 2)
-        logger.info(f"[Mode6] Article generated | Words: {result['metrics']['total_words']} | Time: {elapsed}s")
+        word_count = len(markdown.split())
+        logger.info(f"[Mode6] Article generated | Words: {word_count} | Time: {elapsed}s")
+        
+        # Convert to HTML if requested
+        html = None
+        if req.output_format in ('html', 'all'):
+            html = _markdown_to_html(markdown)
         
         return ArticleResponse(
             success=True,
-            title=result['title'],
-            markdown=result['markdown'],
-            html=result.get('html'),
-            metrics={**result['metrics'], 'generation_time': f"{elapsed}s"}
+            title=req.title,
+            markdown=markdown,
+            html=html,
+            metrics={
+                'total_words': word_count,
+                'length_mode': req.length,
+                'generation_time': f"{elapsed}s"
+            }
         )
         
     except ValueError as e:
@@ -106,3 +117,43 @@ async def generate_article(req: ArticleRequest):
     except Exception as e:
         logger.error(f"[Mode6] Generation failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Article generation failed")
+
+
+def _markdown_to_html(markdown: str) -> str:
+    """Simple markdown to HTML conversion."""
+    html = markdown
+    
+    # Headers
+    html = re.sub(r'^# (.+)$', r'<h1>\1</h1>', html, flags=re.MULTILINE)
+    html = re.sub(r'^## (.+)$', r'<h2>\1</h2>', html, flags=re.MULTILINE)
+    html = re.sub(r'^### (.+)$', r'<h3>\1</h3>', html, flags=re.MULTILINE)
+    
+    # Bold and italic
+    html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
+    html = re.sub(r'\*(.+?)\*', r'<em>\1</em>', html)
+    
+    # Lists (simple)
+    html = re.sub(r'^- \[ \] (.+)$', r'<li>☐ \1</li>', html, flags=re.MULTILINE)
+    html = re.sub(r'^- (.+)$', r'<li>\1</li>', html, flags=re.MULTILINE)
+    html = re.sub(r'^(\d+)\. (.+)$', r'<li>\2</li>', html, flags=re.MULTILINE)
+    
+    # Wrap consecutive <li> in <ul>
+    lines = html.split('\n')
+    result = []
+    in_list = False
+    for line in lines:
+        if '<li>' in line:
+            if not in_list:
+                result.append('<ul>')
+                in_list = True
+            result.append(line)
+        else:
+            if in_list:
+                result.append('</ul>')
+                in_list = False
+            result.append(line if line.strip() else '<br/>')
+    
+    if in_list:
+        result.append('</ul>')
+    
+    return '\n'.join(result)

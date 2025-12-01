@@ -1,286 +1,312 @@
-from typing import Optional
+from typing import Optional, Union
 import re
-from utils.generator import generate
-from services.input_validation import validate_kb_inputs
-from services.context_extraction import extract_context
-from services.article_planner import plan_article_length
-from services.coverage_audit import check_keyword_coverage
+from utils.kag_generator import generate_kag
+from config.settings import LENGTH_RANGES
+
+# System prompt for knowledge article generation
+KNOWLEDGE_ARTICLE_SYSTEM_PROMPT = """
+You are a PROFESSIONAL Knowledge Article Generator for enterprise ITSM platforms. You create PRODUCTION-READY documentation that will be published directly to internal support systems.
+
+🎯 CRITICAL REQUIREMENTS:
+
+1. LENGTH COMPLIANCE (ABSOLUTE PRIORITY):
+   - You MUST generate content that hits the exact target word count
+   - Write comprehensive, detailed content - do not be brief or summarize
+   - Include multiple examples, detailed explanations, and extensive sections
+   - When writing steps, break them into detailed substeps with explanations
+   - Add troubleshooting sections with 5-10 common issues and solutions
+   - Include best practices, tips, warnings, and notes throughout
+   - For longer articles (1000+ words), add sections like: Background, Advanced Scenarios, Security, Performance, Related Topics
+
+2. CONTENT DEPTH (WRITE MORE):
+   - Every section should be substantial with multiple paragraphs
+   - Steps should include: what to do, why to do it, expected results, and potential issues
+   - Examples should be detailed with actual commands, configurations, or scenarios
+   - Troubleshooting sections should have specific error messages and solutions
+   - Include background information and context where relevant
+   - Add "Important Notes", "Tips", "Warnings" callouts throughout
+   - Create comprehensive FAQ sections with 5-10 Q&As for longer articles
+
+3. STRUCTURE REQUIREMENTS (USE PROPER MARKDOWN):
+   - Start with EXACTLY this format for title: `# Your Article Title Here`
+   - Main sections use TWO hashes: `## Introduction`, `## Prerequisites`, `## Implementation Steps`
+   - Subsections use THREE hashes: `### Step 1: First Step`, `### Configuration Details`
+   - DO NOT use **Bold Text** or `**Section Name:**` for headings
+   - ALWAYS use # symbols for ALL section headings
+   - Example structure:
+     ```
+     # Article Title
+     ## Introduction
+     ## Prerequisites  
+     ## Implementation Steps
+     ### Step 1: First Task
+     ### Step 2: Second Task
+     ## Troubleshooting
+     ## Conclusion
+     ```
+   - Include numbered lists (1. 2. 3.) and bullet points (- item)
+   - For long articles, create 8-12 main sections using ##
+
+4. PROFESSIONAL QUALITY (ENTERPRISE-GRADE):
+   - Write for immediate publication - no drafts or placeholders
+   - Include specific, actionable steps with clear outcomes
+   - Use professional technical language appropriate for IT environments
+   - Provide complete, usable information - no generic placeholders
+   - Include relevant command examples, file paths, and configuration details
+   - Add security considerations and compliance notes where relevant
+
+🚨 ABSOLUTE REQUIREMENTS:
+- Generate ONLY the final markdown article - no meta-commentary, no word counts, no process notes
+- Write COMPREHENSIVE content - err on the side of too much detail rather than too little
+- Keep writing until you reach the target word count - add more sections if needed
+- Include extensive examples, detailed troubleshooting, and comprehensive coverage
+- NEVER include word count at the end or mention article length in the content
+- For longer articles, be expansive - include everything the reader might need
+"""
 
 
 class Mode6:
-    """KB Article Generation - Creates structured knowledge base articles from title + description."""
+    """KB Article Generation - Creates structured knowledge base articles from scratch using single LLM call."""
 
     async def generate_article(
         self,
         title: str,
         description: str,
-        length: str = 'medium',
-        keywords: Optional[list[str]] = None,
-        output_format: str = "markdown"
-    ) -> dict:
-        """Generate KB article. Returns dict with markdown, sections, and metrics."""
-        # Step 1: Validate inputs
-        validation = validate_kb_inputs(title, description, length, keywords)
-        if not validation['valid']:
-            raise ValueError(
-                f"Input validation failed:\n" +
-                "\n".join(f"- {issue}" for issue in validation['issues']) +
-                "\n\nSuggestions:\n" +
-                "\n".join(f"• {s}" for s in validation['suggestions'])
-            )
-        
-        # Step 2: Extract context
-        context = extract_context(description, keywords)
-        
-        # Step 3: Plan length and sections based on user choice
-        plan = plan_article_length(length, context)
-        
-        # Step 4: Generate sections
-        sections = {}
-        for section in plan['sections']:
-            target_words = plan['allocation'][section]
-            sections[section] = await self._generate_section(
-                title, description, section, target_words, context
-            )
-        
-        # Step 5: Audit coverage
-        full_text = ' '.join(sections.values())
-        coverage = check_keyword_coverage(full_text, context['keywords'])
-        
-        # Step 6: Regenerate if coverage fails
-        if not coverage['passed'] and coverage['missing']:
-            # Regenerate notes with missing keywords
-            fallback_section = 'notes' if 'notes' in sections else plan['sections'][-1]
-            sections[fallback_section] = await self._regenerate_with_keywords(
-                title, description, fallback_section, 
-                plan['allocation'].get(fallback_section, 100),
-                context, coverage['missing']
-            )
-        
-        # Step 7: Assemble article
-        markdown = self._assemble_markdown(title, sections, plan['sections'])
-        
-        return {
-            'title': title.strip(),
-            'sections': sections,
-            'markdown': markdown,
-            'html': self._markdown_to_html(markdown) if output_format in ('html', 'all') else None,
-            'metrics': {
-                'total_words': len(full_text.split()),
-                'target_words': plan['total_target_words'],
-                'length_choice': length,
-                'word_range': f"{plan['word_range'][0]}-{plan['word_range'][1]}",
-                'keyword_coverage': coverage['coverage'],
-                'complexity': context['complexity']
-            }
-        }
-
-    async def _generate_section(
-        self, title: str, description: str, section: str,
-        target_words: int, context: dict
+        keywords: Optional[Union[list[str], str]] = None,
+        length_mode: str = 'medium',
+        audience: Optional[str] = None
     ) -> str:
-        """Generate a single section."""
-        system_prompt = self._build_section_system_prompt(section)
-        user_prompt = self._build_section_user_prompt(
-            title, description, section, target_words, context
+        """Generate a complete knowledge article from scratch using a single LLM call.
+        
+        Args:
+            title: Article title
+            description: Article description  
+            keywords: List of keywords or comma-separated string
+            length_mode: Length setting (short/medium/long/very_long)
+            audience: Target audience (optional)
+            
+        Returns:
+            Raw Markdown string
+        """
+        # Validate length mode
+        if length_mode not in LENGTH_RANGES:
+            raise ValueError(f"Invalid length_mode '{length_mode}'. Must be one of: {', '.join(LENGTH_RANGES.keys())}")
+        
+        # Process keywords
+        if isinstance(keywords, str):
+            keywords_list = [k.strip() for k in keywords.split(',') if k.strip()]
+        elif keywords is None:
+            keywords_list = []
+        else:
+            keywords_list = keywords
+            
+        # Build user prompt with all inputs
+        user_prompt = self._build_user_prompt(
+            title=title,
+            description=description, 
+            keywords=keywords_list,
+            length_mode=length_mode,
+            audience=audience
         )
         
-        # Token budget: words / 0.75 * 1.4 buffer
-        max_tokens = int((target_words / 0.75) * 1.4)
+        # Get target word counts
+        min_words, max_words = LENGTH_RANGES[length_mode]
+        target_words = int((min_words + max_words) / 2)
         
-        result = await generate(
-            system_prompt=system_prompt,
-            user_message=user_prompt,
-            max_tokens=max_tokens,
-            temperature=0.4,
-            top_p=0.9
-        )
+        # Strategy: Generate with generous token limit and retry if too short
+        max_attempts = 3
+        markdown = None
         
-        return result.strip()
+        for attempt in range(max_attempts):
+            # Generate article
+            temp_markdown = await generate_kag(
+                system_prompt=KNOWLEDGE_ARTICLE_SYSTEM_PROMPT,
+                user_message=user_prompt,
+                temperature=0.4 + (attempt * 0.1),  # Increase temperature slightly on retries for more content
+                max_tokens=self._get_max_tokens_for_length(length_mode)
+            )
+            
+            current_words = len(temp_markdown.split())
+            
+            # If within acceptable range, use it
+            if min_words <= current_words <= max_words:
+                markdown = temp_markdown
+                break
+            
+            # If we got good length, use it
+            if current_words >= min_words * 0.85:  # At least 85% of minimum
+                markdown = temp_markdown
+                
+                # Try one expansion if still a bit short
+                if current_words < min_words:
+                    expanded = await self._expand_article(temp_markdown, min_words, max_words, length_mode)
+                    expanded_words = len(expanded.split())
+                    if expanded_words >= min_words:
+                        markdown = expanded
+                break
+            
+            # If too short and not last attempt, try again with modified prompt
+            if attempt < max_attempts - 1:
+                user_prompt = self._build_user_prompt(
+                    title=title,
+                    description=description + f" Provide comprehensive, detailed coverage with multiple examples and extensive explanations.",
+                    keywords=keywords_list,
+                    length_mode=length_mode,
+                    audience=audience
+                )
+        
+        # If still no good result, use what we have and try expansion
+        if markdown is None:
+            markdown = temp_markdown
+            if len(markdown.split()) < min_words * 0.85:
+                markdown = await self._expand_article(markdown, min_words, max_words, length_mode)
+        
+        # Clean up any word count mentions the AI might have added
+        markdown = self._clean_article_output(markdown)
+        
+        return markdown.strip()
 
-    async def _regenerate_with_keywords(
-        self, title: str, description: str, section: str,
-        target_words: int, context: dict, missing_keywords: list[str]
+    def _build_user_prompt(
+        self,
+        title: str,
+        description: str,
+        keywords: list[str],
+        length_mode: str,
+        audience: Optional[str]
     ) -> str:
-        """Regenerate section with emphasis on missing keywords."""
-        system_prompt = self._build_section_system_prompt(section)
-        user_prompt = self._build_section_user_prompt(
-            title, description, section, target_words, context
-        )
-        user_prompt += f"\n\nCRITICAL: Ensure these keywords appear: {', '.join(missing_keywords)}"
+        """Build user prompt dynamically from inputs with strict length requirements."""
         
-        max_tokens = int((target_words / 0.75) * 1.4)
+        # Get length configuration
+        min_words, max_words = LENGTH_RANGES[length_mode]
+        target_words = int((min_words + max_words) / 2)  # Calculate target midpoint
         
-        result = await generate(
-            system_prompt=system_prompt,
-            user_message=user_prompt,
-            max_tokens=max_tokens,
-            temperature=0.4,
-            top_p=0.9
-        )
+        # Format keywords
+        keywords_str = ', '.join(keywords) if keywords else 'None provided'
         
-        return result.strip()
-
-    def _build_section_system_prompt(self, section: str) -> str:
-        """Build system prompt for specific section."""
-        base = """You are a technical documentation specialist creating IT knowledge base articles.
-
-CORE RULES:
-- Use ONLY information from the provided description and context
-- If specific details are missing, use placeholders: "(Specify version)" or "(Confirm path)"
-- Never invent commands, paths, versions, or technical details
-- Write clearly and professionally for IT professionals
-- Be concise and actionable
-"""
+        # Format audience
+        audience_str = audience or 'General technical audience'
         
-        section_guides = {
-            'prerequisites': """
-SECTION: Prerequisites
-- Bullet list of required access, tools, or conditions
-- Each item: resource + minimum version/level
-- Format: "- Resource (minimum requirement)"
-- Example: "- Administrative access to the server", "- Apache 2.4+ installed"
-- Keep technical and specific""",
-            
-            'purpose': """
-SECTION: Purpose
-- Write 1-2 flowing paragraphs (60-100 words total) without forced line breaks
-- Explain what this article covers and who it's for (IT audience)
-- State the technical problem or goal clearly in complete sentences
-- Mention the system/platform involved
-- Keep paragraphs natural and readable, not wrapped artificially""",
-            
-            'symptoms': """
-SECTION: Symptoms (Troubleshooting Context)
-- Write a concise introductory sentence, then bullet list of technical issues
-- Each symptom: what IT staff/users observe + operational impact
-- Format: "- [Symptom description] (impact on system/operations)"
-- Include error codes, log entries, or system behavior
-- Write naturally without forced line breaks between items""",
-            
-            'steps': """
-SECTION: Step-by-Step Instructions
-- Write a brief section title/intro if needed, then numbered list (1. 2. 3.)
-- Each step: Action + Rationale + Expected Outcome
-- Format: "1. **Action**: Technical description with specific details (system names, paths, commands). *Why*: Reason. *Expected*: Result."
-- Use bold for actions, italics for rationale/expected
-- Include specific systems, commands, configuration paths where applicable
-- Be technically precise - avoid generic phrases like 'Set up account' - specify WHERE and HOW
-- Each step should be actionable by an IT professional
-- Keep each step as a complete, properly formatted numbered item
-- Write naturally without artificial line wrapping""",
-            
-            'validation': """
-SECTION: Validation Steps
-- Write a brief intro sentence explaining validation purpose
-- Then use checklist format: "- [ ] Item"
-- Each item: technical test action + success criteria
-- Format: "- [ ] Check X (should show Y)"
-- Write each checkbox item as a complete, properly formatted line
-- No forced line breaks within checklist items""",
-            
-            'troubleshooting': """
-SECTION: Troubleshooting Tips
-- Write a brief section intro, then bullet list of issues and fixes
-- Format: "- **Issue**: Description → **Fix**: Solution"
-- Each bullet should be complete and properly formatted
-- Include error messages, symptoms, and resolutions
-- Write naturally with proper sentence flow, no artificial wrapping""",
-            
-            'notes': """
-SECTION: Additional Notes
-- Write flowing paragraphs or use organized bullet sections (e.g., Prerequisites:, Common Pitfalls:)
-- Include technical caveats, tips, warnings, dependencies
-- Each bullet or paragraph should be complete and naturally written
-- Use proper subheadings with bold (e.g., **Prerequisites:**) to organize content
-- No forced line breaks, keep text readable and professional""",
-            
-            'best_practices': """
-SECTION: Best Practices
-- Bullet list of recommended IT standards or approaches
-- Each item: practice + technical benefit
-- Format: "- **Practice**: Description (benefit)"
-- Focus on security, performance, maintainability
-- Keep aligned with IT industry standards""",
-            
-            'faq': """
-SECTION: Frequently Asked Questions
-- Q&A format for common technical questions
-- Format: "**Q: Question?** A: Technical answer."
-- Address IT administrator concerns
-- Keep answers concise but technically accurate
-- Include references to relevant sections if needed"""
+        # Add length-specific content guidance
+        length_guidance = {
+            'short': 'Focus on essential steps only. Be concise but complete. Include: Introduction, Prerequisites, Main Steps, Validation.',
+            'medium': 'Include detailed steps, common issues, and validation. Add examples and troubleshooting. Sections: Introduction, Prerequisites, Detailed Steps (with substeps), Examples, Troubleshooting, Validation, Conclusion.',
+            'long': 'Provide comprehensive coverage with prerequisites, detailed procedures, multiple examples, extensive troubleshooting, best practices, and validation steps. Include background context and advanced scenarios. Sections: Introduction, Background, Prerequisites, Detailed Implementation Steps, Multiple Examples, Common Issues & Troubleshooting, Best Practices, Security/Performance Considerations, Validation Steps, Related Topics, Conclusion.',
+            'very_long': 'Create exhaustive documentation with full background, multiple approaches, detailed examples, comprehensive troubleshooting, security considerations, compliance notes, best practices, FAQ section, and related resources. Sections: Executive Summary, Introduction, Background & Context, Prerequisites & Requirements, Detailed Step-by-Step Implementation, Multiple Real-World Examples, Advanced Scenarios, Comprehensive Troubleshooting Guide, Best Practices, Security Considerations, Performance Optimization, Compliance & Governance, Validation & Testing, FAQ, Related Resources, Conclusion.'
         }
         
-        return base + section_guides.get(section, '')
+        return f"""🎯 ARTICLE GENERATION REQUEST
 
-    def _build_section_user_prompt(
-        self, title: str, description: str, section: str,
-        target_words: int, context: dict
-    ) -> str:
-        """Build user prompt for section generation."""
-        context_block = self._format_context_block(context)
-        
-        return f"""ARTICLE TITLE: {title}
+📝 TITLE: {title}
 
-DESCRIPTION:
+📄 DESCRIPTION:
 {description}
 
-{context_block}
+🔑 KEYWORDS: {keywords_str}
 
-TASK: Generate the '{section}' section (~{target_words} words)
+👥 TARGET AUDIENCE: {audience_str}
 
-CONSTRAINTS:
-- Stay within {int(target_words * 0.9)}-{int(target_words * 1.1)} words
-- Use only facts from description above
-- If details missing, use "(Specify)" placeholder
-- Output section content only (no meta-commentary)
+📏 STRICT LENGTH REQUIREMENTS:
+- Length Mode: {length_mode.upper()}
+- Target Word Count: {target_words} words (THIS IS MANDATORY - COUNT AS YOU WRITE)
+- Acceptable Range: {min_words}-{max_words} words
+- YOU MUST HIT THIS TARGET: Write until you reach {target_words} words
 
-Generate the {section} section now:"""
+📦 CONTENT SCOPE FOR {length_mode.upper()}:
+{length_guidance[length_mode]}
 
-    def _format_context_block(self, context: dict) -> str:
-        """Format extracted context for prompt."""
-        lines = ["CONTEXT FACTS:"]
-        
-        if context['keywords']:
-            lines.append(f"Keywords: {', '.join(context['keywords'])}")
-        
-        entities = context['entities']
-        if entities.get('paths'):
-            lines.append(f"Paths: {', '.join(entities['paths'][:3])}")
-        if entities.get('versions'):
-            lines.append(f"Versions: {', '.join(entities['versions'][:3])}")
-        if entities.get('error_codes'):
-            lines.append(f"Error Codes: {', '.join(entities['error_codes'][:3])}")
-        
-        lines.append(f"Complexity: {context['complexity']}")
-        
-        return '\n'.join(lines)
+🚨 CRITICAL LENGTH ENFORCEMENT:
+- Write content until you reach EXACTLY {target_words} words
+- If you're short, add more examples, details, troubleshooting, or best practices
+- If you're over, you've failed - stay within {max_words} words maximum
+- Check your word count multiple times as you write
+- For {length_mode} articles, you MUST provide substantial, detailed content
 
-    def _assemble_markdown(self, title: str, sections: dict, section_order: list[str]) -> str:
-        """Assemble final markdown article."""
-        lines = [f"# {title}", ""]
+✅ DELIVERABLE:
+Generate a {target_words}-word professional knowledge base article that provides complete, actionable guidance and meets the exact word count requirement."""
+
+    def _get_max_tokens_for_length(self, length_mode: str) -> int:
+        """Get appropriate max tokens based on length mode."""
+        _, max_words = LENGTH_RANGES[length_mode]
+        # Convert words to tokens (rough estimate: 1 word = 1.3 tokens) with buffer
+        return int(max_words * 1.3 * 1.4)
+    
+    async def _expand_article(self, markdown: str, min_words: int, max_words: int, length_mode: str) -> str:
+        """Expand an article that's too short by adding more content."""
+        current_words = len(markdown.split())
+        target_words = int((min_words + max_words) / 2)
+        needed_words = target_words - current_words
         
-        section_headers = {
-            'prerequisites': '## Prerequisites',
-            'purpose': '## Purpose',
-            'symptoms': '## Symptoms',
-            'steps': '## Step-by-Step Instructions',
-            'validation': '## Validation Steps',
-            'troubleshooting': '## Troubleshooting Tips',
-            'notes': '## Additional Notes',
-            'best_practices': '## Best Practices',
-            'faq': '## Frequently Asked Questions'
-        }
+        expansion_prompt = f"""Expand this knowledge article from {current_words} to approximately {target_words} words.
+
+REQUIREMENTS:
+- Add {needed_words} more words of valuable content
+- Expand existing sections with more details, examples, and explanations
+- Add new relevant sections like: Advanced Scenarios, Common Mistakes, Security Considerations, Performance Tips, Related Resources
+- Maintain the same professional tone and structure
+- Keep all existing content and headings
+- DO NOT add word counts or meta-commentary
+
+Current article:
+{markdown}
+
+Expanded version ({target_words} words):"""
         
-        for section in section_order:
-            if section in sections:
-                lines.append(section_headers.get(section, f"## {section.replace('_', ' ').title()}"))
-                lines.append("")
-                lines.append(sections[section])
-                lines.append("")
+        expanded = await generate_kag(
+            system_prompt="You are expanding a knowledge article. Add substantial, useful content while maintaining professional quality. Output only the enhanced article - no word counts or commentary.",
+            user_message=expansion_prompt,
+            temperature=0.4,
+            max_tokens=self._get_max_tokens_for_length(length_mode)
+        )
         
-        return '\n'.join(lines).strip()
+        return expanded
+    
+    def _clean_article_output(self, markdown: str) -> str:
+        """Remove any word count mentions or meta-commentary that the AI might add, and fix heading format."""
+        import re
+        
+        # Remove lines that mention word count
+        lines = markdown.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            # Skip lines that contain word count mentions
+            if re.search(r'\bword count\b|\bwords?\s*:\s*\d+|\d+\s*words?\b', line.lower()):
+                continue
+            # Skip lines that look like meta-commentary about the article
+            if re.search(r'this article (contains|has|is)', line.lower()):
+                continue
+            cleaned_lines.append(line)
+        
+        markdown = '\n'.join(cleaned_lines)
+        
+        # Fix heading format: Convert **Title:** to proper markdown headings
+        # Pattern: Line starts with **Text** or **Text:**
+        lines = markdown.split('\n')
+        fixed_lines = []
+        
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            
+            # Check if line is a bold heading (starts with ** and ends with ** or **:)
+            if re.match(r'^\*\*([^*]+)\*\*:?\s*$', stripped):
+                # Extract the heading text
+                heading_match = re.match(r'^\*\*([^*]+)\*\*:?\s*$', stripped)
+                heading_text = heading_match.group(1).strip()
+                
+                # Determine heading level based on context
+                # If it's the first line or looks like a title, make it H1
+                if i == 0 or heading_text.istitle() and len(heading_text) > 20:
+                    fixed_lines.append(f'# {heading_text}')
+                # If previous line was H1 or empty, likely a main section (H2)
+                elif i > 0 and (not lines[i-1].strip() or lines[i-1].strip().startswith('#')):
+                    fixed_lines.append(f'## {heading_text}')
+                # Otherwise H3
+                else:
+                    fixed_lines.append(f'### {heading_text}')
+            else:
+                fixed_lines.append(line)
+        
+        return '\n'.join(fixed_lines)
 
     def _markdown_to_html(self, markdown: str) -> str:
         """Simple markdown to HTML conversion."""
@@ -322,15 +348,12 @@ Generate the {section} section now:"""
 
 
 # Legacy compatibility wrapper
-class Mode6Legacy:
-    """Legacy Mode6 wrapper for backward compatibility."""
-    async def process(self, header: str, body: str, max_output_length=None) -> str:
-        """Legacy interface - generates article and returns markdown only."""
-        mode6 = Mode6()
-        result = await mode6.generate_article(
-            title=header,
-            description=body,
-            keywords=None,
-            output_format="markdown"
-        )
-        return result['markdown']
+async def process_kb_article(header: str, body: str) -> str:
+    """Legacy interface - generates article and returns markdown only."""
+    mode6 = Mode6()
+    return await mode6.generate_article(
+        title=header,
+        description=body,
+        keywords=None,
+        length_mode='medium'
+    )
